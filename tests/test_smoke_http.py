@@ -121,7 +121,7 @@ def check(name: str, cond: bool, detail: str = "") -> None:
 
 # ---- 2) 基础端点 ----
 status, health = call("GET", "/api/health")
-check("health", health.get("service") == "ceo-assistant" and health.get("version") == "1.0.8", str(health)[:80])
+check("health", health.get("service") == "ceo-assistant" and health.get("version") == "1.0.9", str(health)[:80])
 
 # ---- v1.0.3 前置：给默认公司配置 全称+税号（导入前置校验要求）----
 SELF_NAME, SELF_TAX = "冒烟测试有限公司", "91110108MA01TEST0X"

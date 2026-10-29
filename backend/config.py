@@ -16,7 +16,7 @@ from pathlib import Path
 APP_DISPLAY_NAME = "首席执行官"
 APP_INTERNAL_NAME = "littlebeaver_ceo"
 SERVICE_NAME = "ceo-assistant"
-APP_VERSION = "1.0.8"
+APP_VERSION = "1.0.9"
 
 # v1.0.2 改名前的旧数据目录名（迁移源）
 LEGACY_APP_DISPLAY_NAME = "小河狸首席执行官"

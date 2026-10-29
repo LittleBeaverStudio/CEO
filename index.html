@@ -225,16 +225,21 @@
     .modal-card label { display: block; color: var(--muted); font-size: 12px; margin: 10px 0 6px; }
     .modal-card input { width: 100%; }
     .modal-actions { display: flex; justify-content: space-between; gap: 8px; margin-top: 16px; align-items: center; }
-    .guide-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; grid-auto-rows: 1fr; }
+    .guide-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
     .guide-block {
       display: flex; flex-direction: column; min-width: 0; padding: 16px;
       border: 1px solid var(--line); border-radius: 8px; background: var(--panel-soft);
     }
-    .guide-block h3 { margin: 0 0 10px; font-size: 15px; color: var(--text); }
-    .guide-block p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.75; }
-    .guide-contact { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-top: auto; padding-top: 12px; font-size: 13px; line-height: 1.7; }
-    .guide-contact a, .guide-contact button { color: var(--brand); font-weight: 700; text-decoration: none; }
+    .guide-block h3 { margin: 0 0 9px; font-size: 15px; line-height: 1.4; color: var(--text); }
+    .guide-block ul { display: grid; gap: 7px; margin: 0; padding: 0; list-style: none; }
+    .guide-block li { display: flex; align-items: flex-start; gap: 8px; color: var(--muted); font-size: 13px; line-height: 1.55; }
+    .guide-block li::before { content: ""; flex: 0 0 6px; width: 6px; height: 6px; margin-top: 7px; border-radius: 50%; background: var(--brand); }
+    .guide-contact { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 4px 7px; line-height: 1.55; }
+    .guide-contact a { color: var(--brand); font-weight: 700; text-decoration: none; }
     .guide-contact a:hover { text-decoration: underline; }
+    .guide-copy-btn { min-height: 28px; padding: 3px 8px; border: 1px solid var(--line); border-radius: 6px; background: transparent; color: var(--brand); box-shadow: none; font-size: 12px; font-weight: 700; }
+    .guide-copy-btn:hover { border-color: var(--brand); background: rgba(53,199,165,.08); }
+    .guide-copy-btn.copied { color: var(--success); border-color: var(--success); }
     .contact-sep { color: var(--line); user-select: none; }
     .contact-plain { display: inline-flex; align-items: center; gap: 4px; color: var(--brand); font-weight: 700; cursor: default; }
     .qrcode-item { position: relative; display: inline-flex; align-items: center; gap: 4px; cursor: default; }
@@ -346,6 +351,12 @@
       body[data-tab="bank-ledger"] main, body[data-tab="invoice-ledger"] main { flex: 0 0 auto; }
       body[data-tab="bank-ledger"] .ledger-table-wrap, body[data-tab="invoice-ledger"] .ledger-table-wrap { flex: 0 0 auto; max-height: 62vh; }
     }
+    @media (max-width: 760px) {
+      header { flex-wrap: wrap; gap: 12px; }
+      .brand { min-width: 0; }
+      header nav { width: 100%; justify-content: flex-start; margin-left: 0; gap: 6px; }
+      header .nav-btn { padding: 7px 9px; font-size: 13px; }
+    }
   </style>
 </head>
 <body>
@@ -354,14 +365,14 @@
       <!-- v1.0.5：直接引用 app.ico 本身，任务栏/快捷方式/安装包/页面全部同一份文件 -->
       <img src="/app.ico" width="38" height="38" alt="首席执行官 logo">
       <span>首席执行官</span>
-      <span class="version" id="version-pill">v1.0.8</span>
+      <span class="version" id="version-pill">v1.0.9</span>
     </div>
     <nav>
-      <button class="nav-btn active" data-tab="dashboard">驾驶舱</button>
+      <button class="nav-btn" data-tab="import">数据导入</button>
       <button class="nav-btn" data-tab="bank-ledger">银行流水</button>
       <button class="nav-btn" data-tab="invoice-ledger">发票台账</button>
       <button class="nav-btn" data-tab="ai">智能助手</button>
-      <button class="nav-btn" data-tab="import">数据导入</button>
+      <button class="nav-btn active" data-tab="dashboard">驾驶舱</button>
       <button class="nav-btn" data-tab="settings">设置</button>
       <button class="nav-btn" data-tab="help">帮助</button>
       <span id="connBadge" class="conn-badge" hidden title="本地服务未运行：本页功能暂不可用。请关闭本窗口，重新双击「首席执行官」图标启动，数据不会丢。">
@@ -846,68 +857,73 @@
       <!-- ============ 帮助 ============ -->
       <section id="tab-help">
         <div class="panel">
-          <h2>使用说明</h2>
           <div class="guide-grid">
             <article class="guide-block">
-              <h3>三步用起来</h3>
-              <p>
-              1️⃣ <b>导</b>：「导入」页三个文件槽——<b>银行流水</b>（Excel/CSV）+ <b>我开出的发票</b>（必导，算谁欠你）+ <b>我收到的发票</b>（可选，算你欠谁）；先选文件再点「导入」。<br>
-              2️⃣ <b>填</b>：录入每月固定支出（工资/房租/税，填上「每月几号」方便对账）；缴税/分红/设备等一次性大额支出，在「设置 → 固定支出」按具体日期记一笔。<br>
-              3️⃣ <b>看</b>：回到「驾驶舱」——先看一句话速览和本周要办，再按需下钻现金跑道、应收/应付、支出结构与大额支出；发票带项目字段会多一张项目盈利卡。<br>
-              4️⃣ <b>警</b>：中性场景预计跌破安全线或撑月数吃紧时，跑道卡与速览卡会出现预警；可在「智能助手」让 AI 归因。<br>
-              5️⃣ <b>问</b>（可选）：配置云 LLM API 后可用自然语言问看板、生成周简报并一键推企业微信；未配置则是本地规则模式。内置 DeepSeek / Kimi / 智谱 GLM / MiniMax / 通义千问 / 豆包 / 硅基流动 / OpenAI / 本地 Ollama 预设，选厂商填 Key 后点「测试连接」即可验证。
-              </p>
+              <h3>数据导入与公司</h3>
+              <ul>
+                <li>先新增公司并填写全称、税号，再为当前公司导入。</li>
+                <li>银行流水支持 Excel、CSV，导后可在流水台账核对。</li>
+                <li>开具发票用于应收；取得发票用于应付，可分别导入。</li>
+                <li>数据按公司隔离保存，重复导入会自动去重。</li>
+              </ul>
             </article>
             <article class="guide-block">
-              <h3>口径说明（经营口径不是会计口径）</h3>
-              <p>
-              · <b>应收（别人欠我）</b> = 开具发票 − 银行已收（按 对方 + 金额 + ±90 天日期窗口 轻匹配）；没匹配上的开具额全部算未收回。<br>
-              · <b>应付（我欠供应商）</b> = 取得发票 − 银行已付，同样轻匹配；是"还要往外掏的钱"的估计。<br>
-              · <b>还能撑几个月</b>：把账上现金按三场景回款假设往下推演，现金首次见负的时点（月内插值）；并列给中性/最差两个数，不给单点结论。<br>
-              · <b>支出结构</b>：按摘要/对方关键词把近 6 个月支出归入 人力/场地/税费/财务/平台推广/其他 六个大类，认不出的进"其他经营支出"，仅供参考。<br>
-              · <b>本周要办</b>：由撑月数、安全线、账龄、应付账期规则生成，AI 只解释不改变结论。<br>
-              · 金额单位：元（列至角分），KPI 主显万元；本页配色遵循红=风险/流出、绿=健康。<br>
-              · 银行流水与发票明细长期累积存储（像日记账/台账），重复导入自动去重；原始文件可在两个台账页随时查。
-              </p>
+              <h3>驾驶舱与现金跑道</h3>
+              <ul>
+                <li>首页汇总当前现金、近期收支趋势和经营速览。</li>
+                <li>现金跑道按乐观、中性、谨慎场景推演未来六个月。</li>
+                <li>安全线、账龄与回款趋势提示资金压力和催收优先级。</li>
+                <li>支出结构、大额支出和项目盈利帮助定位经营变化。</li>
+              </ul>
             </article>
             <article class="guide-block">
-              <h3>往来单位关联（同一家公司的两种名字）</h3>
-              <p>
-              · 发票抬头写「B 公司」、银行流水对方写「A 公司」，实际是同一笔业务（A 付款、B 开票）。<br>
-              · 到「设置 → 往来单位关联」：左格填 A（要并入的名字），右格填 B（驾驶舱要显示的名字），点「关联」。<br>
-              · 之后应收/应付按同一家合并计算，不会拆成"一笔欠款 + 一笔欠票"；台账里仍显示原始名称，只影响驾驶舱口径。删除关联即恢复原样。<br>
-              · 本公司自己出现在发票"对方"字段的行，会自动排除在应收/应付之外。
-              </p>
+              <h3>应收、应付与往来单位</h3>
+              <ul>
+                <li>开具发票减已匹配收款，估算尚未收回金额。</li>
+                <li>取得发票减已匹配付款，估算待支付金额。</li>
+                <li>匹配参考对方、金额和日期；本公司抬头发票会排除。</li>
+                <li>设置往来单位别名可合并名称，台账仍保留原名。</li>
+              </ul>
             </article>
             <article class="guide-block">
-              <h3>AI 接入（可选）</h3>
-              <p>
-              · 不配也能用：决策卡、周报、告警走本地规则模板。<br>
-              · 要自由问答就选厂商（内置 DeepSeek / Kimi / 智谱 GLM / MiniMax / 通义千问 / 豆包 / 硅基流动 / OpenAI / 本地 Ollama / Agnes）、填 Key、点「测试连接」。<br>
-              · 模型列表可点「刷新模型」从厂商实时拉取；默认把真实客户名发给 AI，勾选「隐藏客户名称」则改用 客户A/B 代称。
-              </p>
+              <h3>固定支出与经营提醒</h3>
+              <ul>
+                <li>在设置登记每月固定支出和预计扣款日。</li>
+                <li>税款、分红等单次支出按实际日期单独记录。</li>
+                <li>默认认为固定支出已在流水中，避免跑道重复扣减。</li>
+                <li>安全线、账龄和应付账期共同生成本周待办。</li>
+              </ul>
             </article>
             <article class="guide-block">
-              <h3>本机 Skill 接口（只读）</h3>
-              <p>
-              GET /api/skill/health · GET /api/skill/info · GET /api/skill/ceo-brief（最新周报文本）。默认端口 8878，仅限本机访问。
-              </p>
+              <h3>智能助手与周报</h3>
+              <ul>
+                <li>无需 API Key 也能使用本地规则问答与提醒。</li>
+                <li>可接入云模型分析经营数据，使用前先测试连接。</li>
+                <li>启用名称隐藏后，客户名称会替换为代号再发送。</li>
+                <li>周报可重新生成；配置企业微信后可推送。</li>
+              </ul>
             </article>
             <article class="guide-block">
-              <h3>联系与更多工具</h3>
-              <p>需要协助或了解其他小河狸工具，可通过邮箱、公众号或工具站联系。</p>
-              <div class="guide-contact" aria-label="联系与更多工具">
-                <a href="mailto:yk.niu@outlook.com" title="发送邮件">邮箱：yk.niu@outlook.com</a>
-                <span class="contact-sep" aria-hidden="true">·</span>
-                <span class="qrcode-item contact-plain" tabindex="0" title="悬停或聚焦查看公众号二维码">公众号
-                  <span class="qrcode-pop">
-                    <img src="/assets/wechat-qrcode.jpg" alt="财务小河狸公众号二维码">
-                    <span>扫码关注「财务小河狸」</span>
+              <h3>智能体 Skill 与反馈支持</h3>
+              <ul>
+                <li>本机 Skill 只读，可查看服务状态、公司列表和周报。</li>
+                <li>按公司读取周报；业务数据不会通过 Skill 修改。</li>
+                <li><button class="guide-copy-btn" type="button" onclick="copySkillPrompt(this)">复制 Skill 安装提示词</button></li>
+                <li>
+                  <span class="guide-contact" aria-label="邮箱、公众号和更多工具">
+                    <a href="mailto:yk.niu@outlook.com">邮箱</a>
+                    <span class="contact-sep" aria-hidden="true">·</span>
+                    <span class="qrcode-item contact-plain" tabindex="0" title="悬停或聚焦查看公众号二维码">公众号
+                      <span class="qrcode-pop">
+                        <img src="/assets/wechat-qrcode.jpg" alt="财务小河狸公众号二维码">
+                        <span>扫码关注「财务小河狸」</span>
+                      </span>
+                    </span>
+                    <span class="contact-sep" aria-hidden="true">·</span>
+                    <a href="https://littlebeaver.top/" target="_blank" rel="noopener">更多工具</a>
                   </span>
-                </span>
-                <span class="contact-sep" aria-hidden="true">·</span>
-                <a href="https://littlebeaver.top/" target="_blank" rel="noopener">更多工具</a>
-              </div>
+                </li>
+              </ul>
             </article>
           </div>
         </div>
@@ -1064,6 +1080,39 @@ document.getElementById("deleteCompanyBtn").addEventListener("click", async () =
     loadFixedExpenses();
   } catch (e) { alert("删除失败：" + e.message); }
 });
+
+const SKILL_INSTALL_PROMPT = [
+  "请运行 npx skills add LittleBeaverStudio/CEO --skill littlebeaver-ceo-assistant 安装小河狸首席执行官 Skill。",
+  "GitHub 路径：https://github.com/LittleBeaverStudio/CEO/tree/main/skill/littlebeaver-ceo-assistant。",
+  "安装后请先阅读 SKILL.md，并只通过本机只读接口查询数据。",
+].join("\n");
+window.copySkillPrompt = async button => {
+  let copied = false;
+  try {
+    await navigator.clipboard.writeText(SKILL_INSTALL_PROMPT);
+    copied = true;
+  } catch (error) {
+    const area = document.createElement("textarea");
+    area.value = SKILL_INSTALL_PROMPT;
+    area.setAttribute("readonly", "");
+    area.style.position = "fixed";
+    area.style.top = "-1000px";
+    document.body.appendChild(area);
+    try {
+      area.select();
+      copied = document.execCommand("copy");
+    } catch (fallbackError) {
+      copied = false;
+    } finally {
+      document.body.removeChild(area);
+    }
+  }
+  const label = button.dataset.label || button.textContent;
+  button.dataset.label = label;
+  button.textContent = copied ? "已复制" : "复制失败";
+  button.classList.toggle("copied", copied);
+  setTimeout(() => { button.textContent = label; button.classList.remove("copied"); }, 1600);
+};
 
 /* ================= 导航 ================= */
 document.querySelectorAll(".nav-btn").forEach(btn => {

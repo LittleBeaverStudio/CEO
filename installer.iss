@@ -1,6 +1,6 @@
-; 首席执行官 —— Inno Setup 安装脚本（v1.0.8）
+; 首席执行官 —— Inno Setup 安装脚本（v1.0.9）
 #define AppName "首席执行官"
-#define AppVersion "1.0.8"
+#define AppVersion "1.0.9"
 #define AppExeName "首席执行官.exe"
 #define AppPublisher "小河狸工作室"
 
