@@ -1,0 +1,24 @@
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.workbuddy/
+
+# Local application data and logs
+backend/data/
+backend/logs/
+*.db
+*.sqlite
+*.sqlite3
+*.log
+
+# Generated desktop build output
+build/
+dist/
+dist_installer/
+
+# Temporary test files
+~$*
+*.tmp
+*.bak

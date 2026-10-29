@@ -1,0 +1,2442 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>首席执行官</title>
+  <link rel="icon" href="/app.ico">
+  <script src="/assets/vendor/echarts.min.js"></script>
+  <style>
+    /* ===== 配色与组件 token：照抄小河狸发票助手（技术说明 §6.0，禁止自行发明配色）===== */
+    :root {
+      --ink: #eef8f4;
+      --text: #eef8f4;
+      --muted: #94a9a3;
+      --line: rgba(171, 214, 202, .16);
+      --paper: #07110f;
+      --panel: rgba(9, 22, 20, .88);
+      --popover: #0b1917;
+      --panel-soft: rgba(21, 42, 38, .72);
+      --control: rgba(255, 255, 255, .075);
+      --brand: #35c7a5;
+      --brand-2: #f0b84f;
+      --danger: #ff806c;
+      --warning: #f5bf5c;
+      --success: #62d39a;
+      --shadow: 0 18px 48px rgba(0, 0, 0, .28);
+      --active: linear-gradient(135deg, rgba(53, 199, 165, .95), rgba(240, 184, 79, .78));
+      --shell-max: none;
+      --gutter: 22px;
+    }
+    body.light {
+      --ink: #15342e;
+      --text: #15342e;
+      --muted: #5d746e;
+      --line: rgba(47, 138, 120, .18);
+      --paper: #f4faf7;
+      --panel: rgba(255, 255, 255, .92);
+      --popover: #ffffff;
+      --panel-soft: rgba(238, 247, 243, .86);
+      --control: rgba(255, 255, 255, .92);
+      --brand: #2f8a78;
+      --brand-2: #dfaa3f;
+      --danger: #c94635;
+      --warning: #9d6a07;
+      --success: #237b52;
+      --shadow: 0 18px 44px rgba(32, 80, 70, .12);
+      --active: linear-gradient(135deg, rgba(47, 138, 120, .96), rgba(223, 170, 63, .84));
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      color: var(--ink);
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at top left, rgba(53, 199, 165, .22), transparent 28%),
+        radial-gradient(circle at 88% 8%, rgba(240, 184, 79, .14), transparent 24%),
+        linear-gradient(180deg, #0e211e 0%, #07110f 52%, #050907 100%);
+      font-family: "Microsoft YaHei", "Segoe UI", sans-serif;
+      font-size: 14px;
+    }
+    body.light {
+      background:
+        radial-gradient(circle at top left, rgba(47, 138, 120, .16), transparent 28%),
+        radial-gradient(circle at 88% 8%, rgba(223, 170, 63, .13), transparent 24%),
+        linear-gradient(180deg, #f8fcfa 0%, #eef7f2 50%, #e3eee9 100%);
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        linear-gradient(rgba(255,255,255,.035) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px);
+      background-size: 42px 42px;
+      mask-image: linear-gradient(180deg, rgba(0,0,0,.75), transparent 92%);
+    }
+    header {
+      max-width: var(--shell-max);
+      min-height: 74px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      padding: 14px 18px;
+      margin: 18px var(--gutter) 0;
+      background: linear-gradient(135deg, rgba(17, 38, 34, .97), rgba(8, 17, 15, .98));
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      position: sticky;   /* v1.0.3：顶栏吸顶，滚动时软件名/导航锁定不动 */
+      top: 10px;
+      z-index: 40;
+      backdrop-filter: blur(18px);
+    }
+    body.light header { background: linear-gradient(135deg, rgba(255, 255, 255, .96), rgba(230, 244, 238, .96)); }
+    .brand { display: flex; align-items: center; gap: 12px; font-weight: 900; font-size: 19px; min-width: 230px; }
+    body.light .brand { color: #15342e; }
+    .brand img { width: 38px; height: 38px; border-radius: 8px; }
+    .version { color: #13231f; font-size: 12px; margin-left: 8px; background: var(--brand-2); border-radius: 999px; padding: 3px 8px; }
+    .theme-toggle {
+      width: 48px; height: 26px; padding: 3px;
+      border-radius: 999px; border: 1px solid var(--line);
+      background: rgba(255,255,255,.08); box-shadow: none;
+      display: flex; align-items: center; justify-content: flex-start; cursor: pointer;
+    }
+    .theme-toggle span { width: 18px; height: 18px; border-radius: 50%; background: var(--brand-2); display: block; transition: .18s ease; }
+    body.light .theme-toggle { justify-content: flex-end; background: rgba(47,138,120,.12); }
+    .shell { max-width: var(--shell-max); margin: 0 auto; padding: 0 var(--gutter); min-height: calc(100vh - 94px); position: relative; z-index: 1; }
+    nav { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-left: auto; }
+    .nav-btn {
+      width: auto; border: 1px solid var(--line);
+      background: rgba(255,255,255,.045); color: var(--muted);
+      text-align: center; padding: 9px 13px; margin-bottom: 0;
+      border-radius: 999px; cursor: pointer; font-weight: 700; font-size: 14px; transition: .18s ease;
+    }
+    .nav-btn:hover { color: var(--text); border-color: rgba(53,199,165,.45); }
+    body.light .nav-btn { background: rgba(47, 138, 120, .08); color: #365e55; }
+    .nav-btn.active { background: var(--active); color: #07110f; border-color: rgba(255,255,255,.2); box-shadow: 0 10px 28px rgba(53,199,165,.18); }
+    main { padding: 18px 0 36px; overflow: hidden; }
+    section { display: none; }
+    section.active { display: block; }
+    .grid { display: grid; gap: 14px; }
+    .grid.cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+    .grid.cols-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .grid.cols-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .panel {
+      background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+      box-shadow: var(--shadow); padding: 16px; backdrop-filter: blur(16px);
+    }
+    h1, h2, h3 { margin: 0; letter-spacing: 0; }
+    h1 { font-size: 22px; }
+    h2 { font-size: 17px; margin-bottom: 12px; }
+    h3 { font-size: 14px; margin-bottom: 8px; }
+    .sub { color: var(--muted); margin: 7px 0 16px; line-height: 1.6; }
+    .toolbar { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+    .toolbar button, .toolbar select, .toolbar input { font-weight: 600; }
+    input, select, textarea {
+      border: 1px solid var(--line); border-radius: 7px; padding: 9px 10px;
+      background: var(--control); color: var(--text); min-height: 38px; font: inherit; outline: none;
+    }
+    input::placeholder, textarea::placeholder { color: rgba(238,248,244,.45); }
+    body.light input::placeholder, body.light textarea::placeholder { color: rgba(21,52,46,.42); }
+    option { background: #10241f; color: var(--text); }
+    body.light option { background: #ffffff; color: #15342e; }
+    button {
+      border: 0; border-radius: 7px; padding: 10px 14px;
+      background: var(--active); color: #07110f; font-weight: 800; cursor: pointer;
+      min-height: 38px; box-shadow: 0 10px 22px rgba(53,199,165,.16); font-size: 14px;
+    }
+    button.secondary { background: rgba(255,255,255,.08); color: var(--text); box-shadow: none; border: 1px solid var(--line); }
+    button.warn { background: var(--brand-2); color: #3c2a00; }
+    .kpi { padding: 14px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel-soft); }
+    .kpi .label { color: var(--muted); font-size: 12px; }
+    .kpi .value { font-size: 22px; font-weight: 900; margin-top: 6px; color: var(--text); }
+    .kpi .hint { font-size: 12px; color: var(--muted); margin-top: 4px; }
+    .notice { border-left: 4px solid var(--brand); padding: 10px 12px; background: rgba(53,199,165,.10); margin-top: 12px; line-height: 1.6; border-radius: 6px; }
+    .notice.warning { border-left-color: var(--brand-2); background: rgba(240,184,79,.12); color: var(--text); }
+    .notice.danger { border-left-color: var(--danger); background: rgba(255,128,108,.12); color: var(--text); }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { border-bottom: 1px solid var(--line); padding: 9px 8px; text-align: left; vertical-align: top; }
+    th { background: rgba(8, 19, 17, .98); color: var(--muted); position: sticky; top: 0; z-index: 1; text-align: center; }
+    body.light th { background: #e7f2ed; color: #365e55; }
+    tbody tr:hover { background: rgba(53,199,165,.06); }
+    .table-wrap { max-height: 560px; overflow: auto; border: 1px solid var(--line); border-radius: 8px; background: rgba(5,12,10,.64); }
+    body.light .table-wrap { background: rgba(255,255,255,.72); }
+    .money { text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }
+    .chart { height: 320px; width: 100%; }
+    .badge {
+      display: inline-block; font-size: 12px; color: var(--muted);
+      border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px;
+    }
+    .risk-flag { color: var(--danger); font-weight: 800; }
+    .ok-flag { color: var(--success); font-weight: 700; }
+    /* v1.0.3 连接状态徽标：内置小提示，不弹大横幅 */
+    .conn-badge {
+      display: inline-flex; align-items: center; gap: 6px; flex: 0 0 auto;
+      font-size: 12px; font-weight: 700; color: var(--danger);
+      border: 1px solid rgba(255,128,108,.4); border-radius: 999px;
+      padding: 4px 10px; background: rgba(255,128,108,.1); cursor: help;
+    }
+    .conn-badge .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--danger); display: inline-block; animation: connPulse 1.6s infinite; }
+    .conn-badge[hidden] { display: none; }
+    @keyframes connPulse { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
+    .tiny { font-size: 12px; color: var(--muted); line-height: 1.7; }
+    .drop {
+      border: 2px dashed var(--line); border-radius: 10px; padding: 22px 16px;
+      text-align: center; color: var(--muted); cursor: pointer; transition: .18s ease;
+      background: var(--panel-soft);
+    }
+    .drop:hover, .drop.over { border-color: var(--brand); color: var(--text); background: rgba(53,199,165,.08); }
+    .drop .icon { font-size: 26px; display: block; margin-bottom: 6px; }
+    .drop.loaded { border-style: solid; border-color: var(--success); color: var(--text); }
+    .split { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(320px, .7fr); gap: 14px; }
+    /* AI 对话 */
+    .chat-box { display: flex; flex-direction: column; gap: 10px; max-height: 460px; overflow: auto; padding: 4px 2px; }
+    .msg { max-width: 86%; padding: 10px 13px; border-radius: 12px; line-height: 1.7; white-space: pre-wrap; }
+    .msg.user { align-self: flex-end; background: var(--active); color: #07110f; font-weight: 600; }
+    .msg.ai { align-self: flex-start; background: var(--panel-soft); border: 1px solid var(--line); }
+    .msg.ai .ai-note { display: block; margin-top: 6px; font-size: 11px; color: var(--muted); }
+    .chat-input { display: flex; gap: 10px; margin-top: 12px; }
+    .chat-input input { flex: 1; }
+    .quick { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+    .quick button { min-height: 32px; padding: 5px 12px; font-size: 13px; font-weight: 600; }
+    /* 设置表格 */
+    .settings-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+    .inline-form { display: grid; gap: 8px; grid-template-columns: 2fr 1.2fr auto; align-items: end; }
+    .inline-form.three { grid-template-columns: 1fr 1fr 1.2fr auto; }
+    /* v1.0.4 固定支出录入：字段多，用弹性换行避免把面板挤爆 */
+    .inline-form.fe-form, .inline-form.ov-form { display: flex; flex-wrap: wrap; align-items: center; }
+    .inline-form.fe-form input, .inline-form.ov-form input { flex: 1 1 128px; min-width: 0; }
+    .inline-form.fe-form input#feDay, .inline-form.fe-form input#feDay2 { flex: 0 1 92px; }
+    .inline-form.ov-form input#ovDate { flex: 0 1 150px; }
+    .row-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+    .edit-btn { min-height: 32px; padding: 4px 10px; font-size: 12px; background: rgba(53,199,165,.14); color: var(--brand); border: 1px solid var(--line); }
+    .del-btn { min-height: 32px; padding: 4px 10px; font-size: 12px; background: rgba(255,128,108,.14); color: var(--danger); border: 1px solid var(--line); }
+    .rate-input { width: 76px; min-height: 30px; padding: 4px 6px; text-align: right; }
+    /* ===== 公司管理（照发票助手：公司下拉 + 新增/修改 modal） ===== */
+    .company-select { min-width: 150px; max-width: 220px; }
+    .company-mini { width: 34px; height: 38px; padding: 0; box-shadow: none; flex: 0 0 auto; }
+    .modal-mask { position: fixed; inset: 0; z-index: 50; background: rgba(0,0,0,.48); display: none; align-items: center; justify-content: center; padding: 16px; }
+    .modal-mask.open { display: flex; }
+    .modal-card { width: min(460px, 100%); border: 1px solid var(--line); border-radius: 8px; background: var(--panel); box-shadow: var(--shadow); padding: 18px; backdrop-filter: blur(16px); }
+    .modal-card h2 { margin: 0 0 14px; }
+    .modal-card label { display: block; color: var(--muted); font-size: 12px; margin: 10px 0 6px; }
+    .modal-card input { width: 100%; }
+    .modal-actions { display: flex; justify-content: space-between; gap: 8px; margin-top: 16px; align-items: center; }
+    .guide-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; grid-auto-rows: 1fr; }
+    .guide-block {
+      display: flex; flex-direction: column; min-width: 0; padding: 16px;
+      border: 1px solid var(--line); border-radius: 8px; background: var(--panel-soft);
+    }
+    .guide-block h3 { margin: 0 0 10px; font-size: 15px; color: var(--text); }
+    .guide-block p { margin: 0; color: var(--muted); font-size: 13px; line-height: 1.75; }
+    .guide-contact { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-top: auto; padding-top: 12px; font-size: 13px; line-height: 1.7; }
+    .guide-contact a, .guide-contact button { color: var(--brand); font-weight: 700; text-decoration: none; }
+    .guide-contact a:hover { text-decoration: underline; }
+    .contact-sep { color: var(--line); user-select: none; }
+    .contact-plain { display: inline-flex; align-items: center; gap: 4px; color: var(--brand); font-weight: 700; cursor: default; }
+    .qrcode-item { position: relative; display: inline-flex; align-items: center; gap: 4px; cursor: default; }
+    .qrcode-pop {
+      position: absolute; bottom: calc(100% + 10px); left: 50%; transform: translateX(-50%); width: 176px;
+      padding: 6px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel);
+      box-shadow: var(--shadow); opacity: 0; visibility: hidden; transition: opacity .16s ease, visibility .16s ease;
+      pointer-events: none; z-index: 40;
+    }
+    .qrcode-item:hover .qrcode-pop, .qrcode-item:focus-within .qrcode-pop { opacity: 1; visibility: visible; }
+    .qrcode-pop img { display: block; width: 100%; border-radius: 6px; }
+    .qrcode-pop span { display: block; margin-top: 4px; text-align: center; font-size: 12px; color: var(--muted); }
+    /* ===== 台账组件：完整复刻小河狸发票助手（file-picker/popover/pager-bar/定高布局） ===== */
+    body[data-tab="bank-ledger"], body[data-tab="invoice-ledger"] { overflow: hidden; }
+    body[data-tab="bank-ledger"] .shell, body[data-tab="invoice-ledger"] .shell {
+      height: calc(100vh - 94px); min-height: 0; display: flex; flex-direction: column;
+    }
+    body[data-tab="bank-ledger"] main, body[data-tab="invoice-ledger"] main {
+      flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; padding: 18px 0 18px;
+    }
+    body[data-tab="bank-ledger"] #tab-bank-ledger.active,
+    body[data-tab="invoice-ledger"] #tab-invoice-ledger.active {
+      display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0;
+    }
+    .ledger-panel { display: flex; flex-direction: column; min-height: 0; flex: 1 1 auto; }
+    .ledger-table-area { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; gap: 12px; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--line); }
+    .ledger-table-wrap { flex: 1 1 auto; min-height: 0; height: auto; max-height: none; border: 0; border-radius: 0; background: transparent; }
+    .ledger-toolbar { position: relative; flex-wrap: wrap; }
+    .ledger-filter-input { min-width: 150px; flex: 1 1 170px; }
+    .ledger-unit-input { min-width: 190px; flex: 1.25 1 220px; }
+    .batch-table th, .batch-table td { text-align: center; }
+    .batch-table th:nth-child(3), .batch-table td:nth-child(3) { text-align: left; }
+    .file-picker { display:flex; align-items:center; min-width:min(360px, 100%); flex:1 1 320px; min-height:42px; border:1px dashed rgba(53,199,165,.42); border-radius:10px; background:rgba(53,199,165,.08); overflow:hidden; cursor:pointer; }
+    .file-picker:hover { border-color: rgba(53,199,165,.72); background: rgba(53,199,165,.14); }
+    body.light .file-picker { background: rgba(47,138,120,.07); border-color: rgba(47,138,120,.28); }
+    .file-picker-label { padding:0 13px; font-weight:800; color:var(--brand); white-space:nowrap; }
+    .file-name { flex:1; color:var(--muted); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; padding:0 10px; }
+    .file-browse { border-radius:0; align-self:stretch; min-height:40px; box-shadow:none; }
+    .file-picker-compact { min-width: 175px; max-width: 240px; flex: 1 1 175px; }
+    .bank-file-picker .file-picker-label { color: var(--brand-2); }
+    .pager-bar { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 12px; }
+    .pager-controls { display: flex; gap: 8px; align-items: center; justify-self: start; }
+    .ledger-total { justify-self: center; text-align: center; color: var(--muted); font-size: 12px; min-width: 0; }
+    #prevLedgerPage, #nextLedgerPage, .export-ledger-btn { min-width: 82px; }
+    .export-ledger-btn { margin-left: 18px; }
+    .filter-popover-wrap { position: relative; display: inline-flex; flex: 0 0 auto; }
+    .compact-filter-btn { height: 38px; min-height: 38px; padding: 0 11px; white-space: nowrap; box-shadow: none; }
+    .compact-filter-btn.has-filter { color: var(--brand); border-color: rgba(53,199,165,.54); background: rgba(53,199,165,.12); }
+    .filter-popover {
+      position: fixed; top: 0; left: 0; z-index: 1000; display: none; padding: 12px;
+      border: 1px solid var(--line); border-radius: 8px; background: var(--popover); box-shadow: var(--shadow);
+    }
+    .filter-popover.open { display: block; }
+    .filter-popover-title { font-weight: 900; margin-bottom: 9px; }
+    .filter-popover-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 10px; }
+    .amount-filter-popover { width: min(390px, calc(100vw - 24px)); }
+    .amount-filter-grid { display: grid; grid-template-columns: 96px minmax(0, 1fr) 18px minmax(0, 1fr); gap: 8px; align-items: center; }
+    .amount-filter-grid label { color: var(--muted); font-size: 12px; }
+    .amount-filter-grid input { width: 100%; min-width: 0; height: 36px; }
+    .amount-filter-separator { color: var(--muted); text-align: center; }
+    .date-filter-wrap { position: relative; display: inline-flex; flex: 0 0 auto; }
+    .date-filter-btn {
+      width: 38px; min-width: 38px; max-width: 38px; padding: 0;
+      display: inline-flex; align-items: center; justify-content: center;
+      color: var(--text); white-space: nowrap;
+    }
+    .date-filter-btn svg { width: 17px; height: 17px; stroke: currentColor; }
+    .date-filter-btn.has-date { color: var(--brand); border-color: rgba(53,199,165,.54); background: rgba(53,199,165,.12); }
+    .date-popover {
+      position: fixed; top: 0; left: 0; z-index: 1000; display: none; width: 292px; padding: 12px;
+      border: 1px solid var(--line); border-radius: 8px; background: var(--popover); box-shadow: var(--shadow);
+    }
+    .date-popover.open { display: block; }
+    .date-popover label { display: block; color: var(--muted); font-size: 12px; margin-bottom: 5px; }
+    .date-popover input { width: 100%; min-width: 0; margin-bottom: 9px; background: var(--control); color: var(--text); }
+    .date-popover-actions { display: flex; justify-content: flex-end; gap: 8px; }
+    /* ===== v1.0.1 经营者视角组件 ===== */
+    .headline-list { display: flex; flex-direction: column; gap: 9px; }
+    .headline-item { font-size: 16px; line-height: 1.75; padding-left: 15px; position: relative; }
+    .headline-item::before { content: ""; position: absolute; left: 0; top: 12px; width: 7px; height: 7px; border-radius: 50%; background: var(--brand); }
+    .action-list { display: flex; flex-direction: column; gap: 8px; }
+    .action-item { display: flex; align-items: baseline; gap: 10px; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--line); background: var(--panel-soft); line-height: 1.65; }
+    .action-item .tag { flex: 0 0 auto; font-size: 12px; font-weight: 800; border-radius: 999px; padding: 2px 10px; }
+    .action-item.high { border-left: 4px solid var(--danger); }
+    .action-item.high .tag { background: rgba(255,128,108,.16); color: var(--danger); }
+    .action-item.mid { border-left: 4px solid var(--brand-2); }
+    .action-item.mid .tag { background: rgba(240,184,79,.16); color: var(--brand-2); }
+    .action-item.low .tag { background: rgba(98,211,154,.14); color: var(--success); }
+    /* ===== v1.0.2 导入页：三个语义区块（参考发票助手两段式） ===== */
+    .import-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; margin-top: 14px; }
+    .import-block { display: flex; flex-direction: column; gap: 12px; }
+    .import-head { display: flex; gap: 12px; align-items: flex-start; }
+    .import-head .import-icon { font-size: 26px; line-height: 1.2; }
+    .import-head h2 { margin-bottom: 4px; }
+    .import-head .badge { margin-left: 6px; vertical-align: 2px; color: var(--brand); border-color: rgba(53,199,165,.4); }
+    .import-head.bank .badge, .import-head.issue .badge { color: var(--brand); }
+    .import-head.receive .badge { color: var(--brand-2); border-color: rgba(240,184,79,.4); }
+    .import-picker { min-height: 46px; flex: 1 1 auto; min-width: 0; margin-top: auto; }
+    .import-picker .file-name { flex: 1 1 auto; min-width: 0; }
+    @media (max-width: 1100px) { .import-grid, .guide-grid { grid-template-columns: 1fr; } }
+    @media (max-width: 1100px) {
+      .grid.cols-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .grid.cols-3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .split, .settings-grid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 900px) {
+      body[data-tab="bank-ledger"], body[data-tab="invoice-ledger"] { overflow: auto; }
+      body[data-tab="bank-ledger"] .shell, body[data-tab="invoice-ledger"] .shell { height: auto; }
+      body[data-tab="bank-ledger"] main, body[data-tab="invoice-ledger"] main { flex: 0 0 auto; }
+      body[data-tab="bank-ledger"] .ledger-table-wrap, body[data-tab="invoice-ledger"] .ledger-table-wrap { flex: 0 0 auto; max-height: 62vh; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <!-- v1.0.5：直接引用 app.ico 本身，任务栏/快捷方式/安装包/页面全部同一份文件 -->
+      <img src="/app.ico" width="38" height="38" alt="首席执行官 logo">
+      <span>首席执行官</span>
+      <span class="version" id="version-pill">v1.0.8</span>
+    </div>
+    <nav>
+      <button class="nav-btn active" data-tab="dashboard">驾驶舱</button>
+      <button class="nav-btn" data-tab="bank-ledger">银行流水</button>
+      <button class="nav-btn" data-tab="invoice-ledger">发票台账</button>
+      <button class="nav-btn" data-tab="ai">智能助手</button>
+      <button class="nav-btn" data-tab="import">数据导入</button>
+      <button class="nav-btn" data-tab="settings">设置</button>
+      <button class="nav-btn" data-tab="help">帮助</button>
+      <span id="connBadge" class="conn-badge" hidden title="本地服务未运行：本页功能暂不可用。请关闭本窗口，重新双击「首席执行官」图标启动，数据不会丢。">
+        <i class="dot"></i>未连接
+      </span>
+      <div class="theme-toggle" id="themeToggle" title="切换深浅主题"><span></span></div>
+    </nav>
+  </header>
+
+  <div class="shell">
+    <main>
+      <!-- ============ 决策驾驶舱 ============ -->
+      <section id="tab-dashboard" class="active">
+        <div class="toolbar" style="margin-bottom:12px;">
+          <select id="companySelectDash" class="company-select" title="当前公司（数据按公司隔离）"></select>
+          <span class="badge" id="asOfBadge" style="margin-left:auto;">数据截至：未导入</span>
+          <button class="secondary" id="refreshDash">刷新</button>
+        </div>
+        <div id="emptyHint" class="notice">
+          还没有数据。到「导入」页丢文件：<b>银行流水</b> + <b>我开出的发票</b>（<b>我收到的发票</b>可选），回来这里一眼看懂公司的钱。
+        </div>
+
+        <div class="grid cols-3" id="kpiRow" style="display:none;">
+          <div class="kpi"><div class="label">账上现金</div><div class="value" id="kpiCash">—</div><div class="hint" id="kpiCashHint"></div></div>
+          <div class="kpi"><div class="label">还能撑几个月</div><div class="value" id="kpiMonths">—</div><div class="hint" id="kpiMonthsHint">按回款假设推演，非承诺</div></div>
+          <div class="kpi"><div class="label">应收 · 别人欠我</div><div class="value" id="kpiAR">—</div><div class="hint" id="kpiARHint"></div></div>
+          <div class="kpi"><div class="label">应付 · 我欠供应商</div><div class="value" id="kpiAP">—</div><div class="hint" id="kpiAPHint"></div></div>
+          <div class="kpi"><div class="label">最近 30 天净入</div><div class="value" id="kpiNet30">—</div><div class="hint" id="kpiNet30Hint"></div></div>
+          <div class="kpi"><div class="label">月固定支出 / 安全线</div><div class="value" id="kpiFixed">—</div><div class="hint">安全线默认 = 1 个月固定支出</div></div>
+        </div>
+
+        <div class="grid" id="actionCard" style="display:none;">
+          <div class="panel">
+            <h2>本周要办（按紧急程度）</h2>
+            <div id="actionList" class="action-list"></div>
+          </div>
+        </div>
+
+        <div class="grid" id="runwayCard" style="display:none;">
+          <div class="panel">
+            <div class="toolbar">
+              <h2>现金跑道（三场景 · 展望 6 个月）</h2>
+              <span class="badge" id="runwayAlert" style="margin-left:auto;"></span>
+            </div>
+            <p class="sub" id="runwayNote">曲线基于回款假设（账龄桶 × 情景回收率摊布），不是事实承诺；三条线并列查看。</p>
+            <div id="runwayChart" class="chart"></div>
+          </div>
+        </div>
+
+        <div class="grid cols-2" id="arCards" style="display:none;">
+          <div class="panel">
+            <h2>应收 TOP（谁欠我最多 · 该怎么办）</h2>
+            <div class="table-wrap" style="max-height:340px;">
+              <table id="arTopTable">
+                <thead><tr><th>#</th><th>往来单位</th><th>应收余额(元)</th><th>最长拖</th><th>90天以上(元)</th><th>建议</th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="panel">
+            <h2>应收账龄（开票日距今分桶）</h2>
+            <div id="agingChart" class="chart" style="height:300px;"></div>
+            <p class="tiny" id="agingSummary"></p>
+          </div>
+        </div>
+
+        <div class="grid cols-2" id="apCards" style="display:none;">
+          <div class="panel">
+            <h2>应付 TOP（我欠谁最多）</h2>
+            <div class="table-wrap" style="max-height:340px;">
+              <table id="apTopTable">
+                <thead><tr><th>#</th><th>供应商</th><th>未付金额(元)</th><th>笔数</th><th>拿票最长(天)</th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+            <p class="tiny" id="apSummary"></p>
+          </div>
+          <div class="panel">
+            <h2>钱花哪去了（近 6 个月支出结构）</h2>
+            <div id="spendChart" class="chart" style="height:300px;"></div>
+            <p class="tiny" id="spendSummary"></p>
+          </div>
+        </div>
+
+        <div class="grid cols-2" id="spendCards" style="display:none;">
+          <div class="panel">
+            <h2>最近 30 天大额支出</h2>
+            <p class="tiny" id="bigSpendNote"></p>
+            <div class="table-wrap" style="max-height:300px;">
+              <table id="bigSpendTable">
+                <thead><tr><th>日期</th><th>对方</th><th>金额(元)</th><th>摘要</th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+          <div class="panel">
+            <h2>支出最多的对象（近 6 个月）</h2>
+            <div id="spendTargetChart" class="chart" style="height:300px;"></div>
+          </div>
+        </div>
+
+        <div class="grid cols-2" id="trendCards" style="display:none;">
+          <div class="panel">
+            <h2>回款趋势（柱＝当月开票拆分，线＝回款率）</h2>
+            <div id="collectionChart" class="chart" style="height:300px;"></div>
+          </div>
+          <div class="panel">
+            <h2>银行收支趋势（收入 / 支出 / 净额）</h2>
+            <div id="cashTrendChart" class="chart" style="height:300px;"></div>
+          </div>
+        </div>
+
+        <div class="grid" id="projectCard" style="display:none;">
+          <div class="panel">
+            <h2>项目盈利（发票带项目字段才显示）</h2>
+            <div class="table-wrap" style="max-height:340px;">
+              <table id="projectTable">
+                <thead><tr><th>项目</th><th>开具收入(元)</th><th>取得成本(元)</th><th>毛利(元)</th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div id="dashWarnings"></div>
+      </section>
+
+      <!-- ============ 银行流水（独立页 · 日记账） ============ -->
+      <section id="tab-bank-ledger">
+        <div class="panel ledger-panel">
+          <div class="toolbar ledger-toolbar">
+            <select id="companySelectBank" class="company-select" title="当前公司（数据按公司隔离）"></select>
+            <select id="bankLedgerAccount" style="min-width:150px;"><option value="">全部账户</option></select>
+            <select id="bankLedgerDirection" style="min-width:96px;">
+              <option value="">收/付全部</option>
+              <option value="in">收入</option>
+              <option value="out">支出</option>
+            </select>
+            <div class="date-filter-wrap">
+              <button class="secondary date-filter-btn" id="bankDateBtn" type="button" title="选择日期范围" aria-label="选择日期范围">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <rect x="3" y="4" width="18" height="18" rx="2"></rect>
+                  <path d="M16 2v4M8 2v4M3 10h18"></path>
+                </svg>
+              </button>
+              <div class="date-popover" id="bankDatePopover">
+                <label for="bankDateFrom">开始日期</label>
+                <input id="bankDateFrom" type="text" inputmode="numeric" maxlength="10" placeholder="yyyy-mm-dd">
+                <label for="bankDateTo">结束日期</label>
+                <input id="bankDateTo" type="text" inputmode="numeric" maxlength="10" placeholder="yyyy-mm-dd">
+                <div class="date-popover-actions"><button class="secondary" id="bankDateClear" type="button">清空</button><button id="bankDateApply" type="button">确定</button></div>
+              </div>
+            </div>
+            <div class="filter-popover-wrap">
+              <button class="secondary compact-filter-btn" id="bankAmountBtn" type="button" title="金额区间">金额</button>
+              <div class="filter-popover amount-filter-popover" id="bankAmountPopover">
+                <div class="filter-popover-title">金额区间</div>
+                <div class="amount-filter-grid">
+                  <label for="bankAmountMin">金额</label><input id="bankAmountMin" type="number" step="0.01" placeholder="最小值"><span class="amount-filter-separator">至</span><input id="bankAmountMax" type="number" step="0.01" placeholder="最大值">
+                </div>
+                <div class="filter-popover-actions"><button class="secondary" id="bankAmountClear" type="button">清空</button><button id="bankAmountApply" type="button">确定</button></div>
+              </div>
+            </div>
+            <input id="bankLedgerKw" class="ledger-filter-input ledger-unit-input" placeholder="对方单位 / 摘要 / 流水号">
+            <label style="display:flex;align-items:center;gap:5px;font-size:13px;color:var(--muted);flex:0 0 auto;">
+              <input type="checkbox" id="bankLedgerDup" style="min-height:0;"> 仅看疑似重复
+            </label>
+            <button id="bankLedgerQuery">查询</button><button class="secondary" id="bankLedgerReset">重置</button>
+          </div>
+          <div class="ledger-table-area">
+            <div class="table-wrap ledger-table-wrap">
+              <table id="bankLedgerTable">
+                <thead><tr>
+                  <th>日期</th><th>收/付</th><th>对方单位</th><th>金额(元)</th><th>交易后余额(元)</th>
+                  <th>摘要</th><th>账户</th><th>流水号</th><th>校验</th><th>导入时间</th>
+                </tr></thead>
+                <tbody id="bankLedgerRows"></tbody>
+              </table>
+            </div>
+            <div class="toolbar pager-bar">
+              <div class="pager-controls">
+                <button class="secondary" id="bankLedgerPrev">上一页</button>
+                <span id="bankLedgerPage" class="tiny">1 / 1</span>
+                <button class="secondary" id="bankLedgerNext">下一页</button>
+                <button class="secondary export-ledger-btn" id="bankLedgerExport">导出</button>
+              </div>
+              <span id="bankLedgerTotal" class="ledger-total">0 笔</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ 发票台账（独立页 · 复刻发票助手格式） ============ -->
+      <section id="tab-invoice-ledger">
+        <div class="panel ledger-panel">
+          <div class="toolbar ledger-toolbar">
+            <select id="companySelectInv" class="company-select" title="当前公司（数据按公司隔离）"></select>
+            <select id="invLedgerKind" style="min-width:110px;">
+              <option value="">全部方向</option>
+              <option value="issue">开具</option>
+              <option value="receive">取得</option>
+            </select>
+            <div class="date-filter-wrap">
+              <button class="secondary date-filter-btn" id="invDateBtn" type="button" title="选择日期范围" aria-label="选择日期范围">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <rect x="3" y="4" width="18" height="18" rx="2"></rect>
+                  <path d="M16 2v4M8 2v4M3 10h18"></path>
+                </svg>
+              </button>
+              <div class="date-popover" id="invDatePopover">
+                <label for="invDateFrom">开始日期</label>
+                <input id="invDateFrom" type="text" inputmode="numeric" maxlength="10" placeholder="yyyy-mm-dd">
+                <label for="invDateTo">结束日期</label>
+                <input id="invDateTo" type="text" inputmode="numeric" maxlength="10" placeholder="yyyy-mm-dd">
+                <div class="date-popover-actions"><button class="secondary" id="invDateClear" type="button">清空</button><button id="invDateApply" type="button">确定</button></div>
+              </div>
+            </div>
+            <div class="filter-popover-wrap">
+              <button class="secondary compact-filter-btn" id="invAmountBtn" type="button" title="金额区间">金额</button>
+              <div class="filter-popover amount-filter-popover" id="invAmountPopover">
+                <div class="filter-popover-title">金额区间</div>
+                <div class="amount-filter-grid">
+                  <label for="invAmountMin">价税合计</label><input id="invAmountMin" type="number" step="0.01" placeholder="最小值"><span class="amount-filter-separator">至</span><input id="invAmountMax" type="number" step="0.01" placeholder="最大值">
+                  <label for="invTaxMin">税额</label><input id="invTaxMin" type="number" step="0.01" placeholder="最小值"><span class="amount-filter-separator">至</span><input id="invTaxMax" type="number" step="0.01" placeholder="最大值">
+                </div>
+                <div class="filter-popover-actions"><button class="secondary" id="invAmountClear" type="button">清空</button><button id="invAmountApply" type="button">确定</button></div>
+              </div>
+            </div>
+            <input id="invLedgerNo" class="ledger-filter-input" placeholder="发票号码">
+            <input id="invLedgerUnit" class="ledger-filter-input ledger-unit-input" placeholder="单位名称">
+            <input id="invLedgerProject" class="ledger-filter-input" placeholder="项目">
+            <button id="invLedgerQuery">查询</button><button class="secondary" id="invLedgerReset">重置</button>
+          </div>
+          <div class="ledger-table-area">
+            <div class="table-wrap ledger-table-wrap">
+              <table id="invLedgerTable">
+                <thead><tr>
+                  <th>日期</th><th>方向</th><th>发票号码</th><th>客户/供应商</th><th>金额(元)</th>
+                  <th>税额(元)</th><th>价税合计(元)</th><th>项目</th><th>导入时间</th>
+                </tr></thead>
+                <tbody id="invLedgerRows"></tbody>
+              </table>
+            </div>
+            <div class="toolbar pager-bar">
+              <div class="pager-controls">
+                <button class="secondary" id="invLedgerPrev">上一页</button>
+                <span id="invLedgerPage" class="tiny">1 / 1</span>
+                <button class="secondary" id="invLedgerNext">下一页</button>
+                <button class="secondary export-ledger-btn" id="invLedgerExport">导出</button>
+              </div>
+              <span id="invLedgerTotal" class="ledger-total"></span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ 智能助手 ============ -->
+      <section id="tab-ai">
+        <div class="split">
+          <div class="panel">
+            <h2>经营问答</h2>
+            <p class="sub" id="aiModeNote"></p>
+            <div class="chat-box" id="chatBox"></div>
+            <div class="quick">
+              <button class="secondary" data-q="下月会缺钱吗？">下月会缺钱吗？</button>
+              <button class="secondary" data-q="谁欠我最多？">谁欠我最多？</button>
+              <button class="secondary" data-q="钱都花在哪了？">钱都花在哪了？</button>
+              <button class="secondary" data-q="我欠供应商多少钱？">我欠供应商多少钱？</button>
+              <button class="secondary" data-q="应收账龄健康吗？">应收账龄健康吗？</button>
+            </div>
+            <div class="chat-input">
+              <input id="chatInput" placeholder="用自然语言问这张看板…（例如：下月会缺钱吗？）">
+              <button id="chatSend">发送</button>
+            </div>
+            <p class="tiny">核心数值由本地引擎确定性计算，AI 只负责翻译与叙述；AI 回答仅供参考。</p>
+          </div>
+          <div class="panel">
+            <h2>周简报</h2>
+            <p class="sub">由看板数据生成一段可直接转发的口语化简报；配置企业微信机器人后可一键推送。</p>
+            <div class="toolbar" style="margin-bottom:10px;">
+              <button id="genBrief">生成本周简报</button>
+              <button class="secondary" id="genBriefFresh">强制重新生成</button>
+              <button class="warn" id="pushBrief">推送到企业微信</button>
+            </div>
+            <div id="briefContent" class="notice" style="white-space:pre-wrap;">尚未生成。</div>
+            <h3 style="margin-top:14px;">情景问答（如果客户 X 拖到 90 天会怎样？）</h3>
+            <div class="inline-form" style="grid-template-columns: 2fr auto;">
+              <input id="scenarioClient" placeholder="输入往来单位名称（应收 TOP 中的客户）">
+              <button id="scenarioBtn" class="secondary">重算跑道</button>
+            </div>
+            <div id="scenarioResult" class="notice" style="display:none; white-space:pre-wrap;"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ 数据导入（v1.0.2 重设计：参考发票助手两段式，三个语义区块） ============ -->
+      <section id="tab-import">
+        <div class="panel">
+          <div class="toolbar">
+            <select id="companySelectImport" class="company-select" title="当前公司（数据按公司隔离）"></select>
+            <button class="secondary company-mini" id="addCompanyBtn" title="新增公司">＋</button>
+            <button class="secondary company-mini" id="editCompanyBtn" title="修改/删除公司">✎</button>
+          </div>
+          <div id="importResult"></div>
+          <div id="companySetupHint" class="notice warning" style="display:none;">
+            ⚠ <b>先完善本公司信息</b>（公司全称 + 税号）再导入——用于把本公司和客户/供应商区分开，
+            不然发票里会出现"自己欠自己"。
+            <button id="companySetupBtn" style="margin-left:10px;min-height:32px;padding:4px 12px;font-size:13px;">去填写</button>
+          </div>
+        </div>
+
+        <div class="import-grid">
+          <div class="panel import-block">
+            <div class="import-head bank">
+              <span class="import-icon">🏦</span>
+              <div>
+                <h2>银行流水</h2>
+              </div>
+            </div>
+            <div class="file-picker import-picker" id="bankFilePicker" role="button" tabindex="0" title="点击选择银行流水文件（xlsx / xls / csv）">
+              <div class="file-picker-label">银行流水</div>
+              <div class="file-name" id="bankFileName">未选择文件</div>
+              <button class="secondary file-browse" id="bankImportBtn" type="button" disabled>导入</button>
+            </div>
+            <input type="file" id="bankImportFile" class="hidden-file" accept=".xlsx,.xls,.xlsm,.csv" hidden>
+          </div>
+
+          <div class="panel import-block">
+            <div class="import-head issue">
+              <span class="import-icon">📤</span>
+              <div>
+                <h2>我开出的发票 <span class="badge">客户欠我的</span></h2>
+              </div>
+            </div>
+            <div class="file-picker import-picker" id="invFilePicker" role="button" tabindex="0" title="点击选择开具发票明细（xlsx / xls）">
+              <div class="file-picker-label">开具明细</div>
+              <div class="file-name" id="invFileName">未选择文件</div>
+              <button class="secondary file-browse" id="invImportBtn" type="button" disabled>导入</button>
+            </div>
+            <input type="file" id="invImportFile" class="hidden-file" accept=".xlsx,.xls,.xlsm" hidden>
+          </div>
+
+          <div class="panel import-block">
+            <div class="import-head receive">
+              <span class="import-icon">📥</span>
+              <div>
+                <h2>我收到的发票 <span class="badge">我欠供应商的</span></h2>
+              </div>
+            </div>
+            <div class="file-picker import-picker" id="recvFilePicker" role="button" tabindex="0" title="点击选择取得发票明细（xlsx / xls）">
+              <div class="file-picker-label">取得明细</div>
+              <div class="file-name" id="recvFileName">未选择文件</div>
+              <button class="secondary file-browse" id="recvImportBtn" type="button" disabled>导入</button>
+            </div>
+            <input type="file" id="recvImportFile" class="hidden-file" accept=".xlsx,.xls,.xlsm" hidden>
+          </div>
+        </div>
+
+        <div class="panel" style="margin-top:14px">
+          <h2>银行账户</h2>
+          <div class="table-wrap" style="max-height:220px;">
+            <table id="accountTable">
+              <thead><tr><th>账户名称</th><th>账号</th><th>流水笔数</th><th>日期范围</th><th></th></tr></thead>
+              <tbody></tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="panel" style="margin-top:14px">
+          <h2>最近导入</h2>
+          <p class="tiny">重复导入的文件会在这里显示"重复跳过"笔数；账目连续但同日同金额、对方/摘要不同的流水会被标为「疑似重复」，到「银行流水」页核对。</p>
+          <div class="table-wrap"><table class="batch-table"><thead><tr><th>时间</th><th>类型</th><th>文件</th><th>原始行</th><th>新增</th><th>重复跳过</th><th>更新</th><th>疑似重复</th><th>警告</th></tr></thead><tbody id="batchRows"></tbody></table></div>
+        </div>
+      </section>
+
+      <!-- ============ 设置 ============ -->
+      <section id="tab-settings">
+        <div class="settings-grid">
+          <div class="panel">
+            <h2>固定支出</h2>
+            <h3 style="margin-top:12px;">每月固定支出</h3>
+            <div class="inline-form fe-form">
+              <input id="feName2" placeholder="名称，如：工资">
+              <input id="feAmount2" type="number" step="0.01" placeholder="每月金额(元)">
+              <input id="feDay2" type="number" min="1" max="31" step="1" placeholder="每月几号">
+              <input id="feNote2" placeholder="备注（选填）">
+              <button id="feAdd2">添加</button>
+              <button class="secondary" id="feCancel2" style="display:none;">取消修改</button>
+            </div>
+            <div class="table-wrap" style="max-height:260px; margin-top:10px;">
+              <table id="feTable2">
+                <thead><tr><th>名称</th><th>每月金额(元)</th><th>每月几号</th><th>备注</th><th>操作</th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+            <h3 style="margin-top:16px;">某月大额支出</h3>
+            <div class="inline-form ov-form">
+              <input id="ovAmount" type="number" step="0.01" placeholder="金额(元)">
+              <input id="ovDate" type="date">
+              <input id="ovNote" placeholder="备注，如：Q4 预缴税">
+              <button id="ovAdd">添加</button>
+              <button class="secondary" id="ovCancel" style="display:none;">取消修改</button>
+            </div>
+            <div class="table-wrap" style="max-height:220px; margin-top:10px;">
+              <table id="ovTable"><thead><tr><th>金额(元)</th><th>日期</th><th>备注</th><th>操作</th></tr></thead><tbody></tbody></table>
+            </div>
+          </div>
+          <div class="panel">
+            <h2>情景回收率</h2>
+            <div class="table-wrap" style="max-height:240px;">
+              <table id="rateTable">
+                <thead><tr><th>场景</th><th>0-30天</th><th>31-60</th><th>61-90</th><th>90+</th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+            <div class="inline-form" style="margin-top:12px; grid-template-columns: auto 1fr auto;">
+              <span>安全线 =</span>
+              <input id="safetyInput" type="number" step="0.5" min="0" placeholder="1">
+              <button id="safetySave" class="secondary">保存</button>
+            </div>
+            <label class="tiny" style="display:flex;align-items:center;gap:6px;margin-top:10px;cursor:pointer;">
+              <input type="checkbox" id="fixedInCashflow" style="width:auto;min-height:auto;"> 固定支出已含在流水里
+            </label>
+
+          </div>
+          <div class="panel">
+            <h2>AI 接入</h2>
+            <div class="inline-form" style="grid-template-columns: 1fr 1fr;">
+              <select id="aiProvider"></select>
+              <select id="aiModel"></select>
+            </div>
+            <div class="inline-form" style="margin-top:8px; grid-template-columns: 2fr 1fr;">
+              <input id="aiBaseUrl" placeholder="Base URL">
+              <input id="aiKey" type="password" placeholder="API Key">
+            </div>
+            <div class="inline-form" id="aiCustomModelRow" style="margin-top:8px; display:none;">
+              <input id="aiCustomModel" placeholder="自定义模型名">
+            </div>
+            <label class="tiny" style="display:flex;align-items:center;gap:6px;margin-top:8px;cursor:pointer;">
+              <input type="checkbox" id="aiAnonymize" style="width:auto;min-height:auto;"> 发给 AI 时隐藏客户名称
+            </label>
+            <div class="toolbar" style="margin-top:10px;">
+              <button id="aiSave">保存</button>
+              <button class="secondary" id="aiTest">测试连接</button>
+              <button class="secondary" id="aiFetchModels">刷新模型</button>
+              <span class="tiny" id="aiStatus"></span>
+            </div>
+            <div id="aiTestResult" class="notice" style="display:none; margin-top:8px; white-space:pre-wrap; word-break:break-word;"></div>
+          </div>
+          <div class="panel">
+            <h2>往来单位关联</h2>
+            <div class="inline-form" style="grid-template-columns: 1fr 1fr auto;">
+              <input id="cpAlias" list="cpNameList" placeholder="别名">
+              <input id="cpCanonical" list="cpNameList" placeholder="主名">
+              <button id="cpAdd">关联</button>
+            </div>
+            <datalist id="cpNameList"></datalist>
+            <div class="table-wrap" style="max-height:200px; margin-top:10px;">
+              <table id="cpTable"><thead><tr><th>别名</th><th>主名</th><th></th></tr></thead><tbody></tbody></table>
+            </div>
+          </div>
+          <div class="panel">
+            <h2>企业微信推送</h2>
+            <div class="inline-form" style="grid-template-columns: 3fr auto;">
+              <input id="wecomUrl" placeholder="https://qyapi.weixin.qq.com/cgi-bin/webhook/send?key=…">
+              <button id="wecomSave">保存</button>
+            </div>
+            <p class="tiny" id="wecomStatus"></p>
+          </div>
+          <div class="panel">
+            <h2>数据源管理</h2>
+            <p class="tiny">⚠ 清空不可恢复。</p>
+            <div id="dataSourceInfo" class="tiny" style="line-height:2;"></div>
+            <div class="toolbar" style="margin-top:10px;">
+              <button class="secondary" id="clearBank2">⚠ 清空银行流水</button>
+              <button class="secondary" id="clearInvoice2">⚠ 清空发票明细</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ 帮助 ============ -->
+      <section id="tab-help">
+        <div class="panel">
+          <h2>使用说明</h2>
+          <div class="guide-grid">
+            <article class="guide-block">
+              <h3>三步用起来</h3>
+              <p>
+              1️⃣ <b>导</b>：「导入」页三个文件槽——<b>银行流水</b>（Excel/CSV）+ <b>我开出的发票</b>（必导，算谁欠你）+ <b>我收到的发票</b>（可选，算你欠谁）；先选文件再点「导入」。<br>
+              2️⃣ <b>填</b>：录入每月固定支出（工资/房租/税，填上「每月几号」方便对账）；缴税/分红/设备等一次性大额支出，在「设置 → 固定支出」按具体日期记一笔。<br>
+              3️⃣ <b>看</b>：回到「驾驶舱」——先看一句话速览和本周要办，再按需下钻现金跑道、应收/应付、支出结构与大额支出；发票带项目字段会多一张项目盈利卡。<br>
+              4️⃣ <b>警</b>：中性场景预计跌破安全线或撑月数吃紧时，跑道卡与速览卡会出现预警；可在「智能助手」让 AI 归因。<br>
+              5️⃣ <b>问</b>（可选）：配置云 LLM API 后可用自然语言问看板、生成周简报并一键推企业微信；未配置则是本地规则模式。内置 DeepSeek / Kimi / 智谱 GLM / MiniMax / 通义千问 / 豆包 / 硅基流动 / OpenAI / 本地 Ollama 预设，选厂商填 Key 后点「测试连接」即可验证。
+              </p>
+            </article>
+            <article class="guide-block">
+              <h3>口径说明（经营口径不是会计口径）</h3>
+              <p>
+              · <b>应收（别人欠我）</b> = 开具发票 − 银行已收（按 对方 + 金额 + ±90 天日期窗口 轻匹配）；没匹配上的开具额全部算未收回。<br>
+              · <b>应付（我欠供应商）</b> = 取得发票 − 银行已付，同样轻匹配；是"还要往外掏的钱"的估计。<br>
+              · <b>还能撑几个月</b>：把账上现金按三场景回款假设往下推演，现金首次见负的时点（月内插值）；并列给中性/最差两个数，不给单点结论。<br>
+              · <b>支出结构</b>：按摘要/对方关键词把近 6 个月支出归入 人力/场地/税费/财务/平台推广/其他 六个大类，认不出的进"其他经营支出"，仅供参考。<br>
+              · <b>本周要办</b>：由撑月数、安全线、账龄、应付账期规则生成，AI 只解释不改变结论。<br>
+              · 金额单位：元（列至角分），KPI 主显万元；本页配色遵循红=风险/流出、绿=健康。<br>
+              · 银行流水与发票明细长期累积存储（像日记账/台账），重复导入自动去重；原始文件可在两个台账页随时查。
+              </p>
+            </article>
+            <article class="guide-block">
+              <h3>往来单位关联（同一家公司的两种名字）</h3>
+              <p>
+              · 发票抬头写「B 公司」、银行流水对方写「A 公司」，实际是同一笔业务（A 付款、B 开票）。<br>
+              · 到「设置 → 往来单位关联」：左格填 A（要并入的名字），右格填 B（驾驶舱要显示的名字），点「关联」。<br>
+              · 之后应收/应付按同一家合并计算，不会拆成"一笔欠款 + 一笔欠票"；台账里仍显示原始名称，只影响驾驶舱口径。删除关联即恢复原样。<br>
+              · 本公司自己出现在发票"对方"字段的行，会自动排除在应收/应付之外。
+              </p>
+            </article>
+            <article class="guide-block">
+              <h3>AI 接入（可选）</h3>
+              <p>
+              · 不配也能用：决策卡、周报、告警走本地规则模板。<br>
+              · 要自由问答就选厂商（内置 DeepSeek / Kimi / 智谱 GLM / MiniMax / 通义千问 / 豆包 / 硅基流动 / OpenAI / 本地 Ollama / Agnes）、填 Key、点「测试连接」。<br>
+              · 模型列表可点「刷新模型」从厂商实时拉取；默认把真实客户名发给 AI，勾选「隐藏客户名称」则改用 客户A/B 代称。
+              </p>
+            </article>
+            <article class="guide-block">
+              <h3>本机 Skill 接口（只读）</h3>
+              <p>
+              GET /api/skill/health · GET /api/skill/info · GET /api/skill/ceo-brief（最新周报文本）。默认端口 8878，仅限本机访问。
+              </p>
+            </article>
+            <article class="guide-block">
+              <h3>联系与更多工具</h3>
+              <p>需要协助或了解其他小河狸工具，可通过邮箱、公众号或工具站联系。</p>
+              <div class="guide-contact" aria-label="联系与更多工具">
+                <a href="mailto:yk.niu@outlook.com" title="发送邮件">邮箱：yk.niu@outlook.com</a>
+                <span class="contact-sep" aria-hidden="true">·</span>
+                <span class="qrcode-item contact-plain" tabindex="0" title="悬停或聚焦查看公众号二维码">公众号
+                  <span class="qrcode-pop">
+                    <img src="/assets/wechat-qrcode.jpg" alt="财务小河狸公众号二维码">
+                    <span>扫码关注「财务小河狸」</span>
+                  </span>
+                </span>
+                <span class="contact-sep" aria-hidden="true">·</span>
+                <a href="https://littlebeaver.top/" target="_blank" rel="noopener">更多工具</a>
+              </div>
+            </article>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- 公司管理 modal（v1.0.3：公司全称+税号，导入前必须配置） -->
+  <div class="modal-mask" id="companyModal">
+    <div class="modal-card">
+      <h2 id="companyModalTitle">新增公司</h2>
+      <input type="hidden" id="companyIdInput">
+      <label for="companyNameInput">公司全称 *</label>
+      <input id="companyNameInput" placeholder="如：北京某某科技有限公司（与发票/流水一致）">
+      <label for="companyTaxInput">税号（统一社会信用代码）*</label>
+      <input id="companyTaxInput" placeholder="如：91110108MA01XXXXX0" style="text-transform:uppercase;">
+      <label for="companyNoteInput">备注（可选）</label>
+      <input id="companyNoteInput" placeholder="如：一般纳税人 / 主业务主体">
+      <p class="tiny" style="margin-top:8px;">导入流水/发票前必须填好全称与税号：用于区分「本公司」和客户/供应商，避免把自己当成客户。</p>
+      <div class="modal-actions">
+        <button class="del-btn" id="deleteCompanyBtn" style="visibility:hidden;">删除公司</button>
+        <div style="display:flex; gap:8px;">
+          <button class="secondary" id="cancelCompanyBtn">取消</button>
+          <button id="saveCompanyBtn">保存</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+"use strict";
+/* ================= 主题（照发票助手：localStorage 记忆，默认深色） ================= */
+const themeToggle = document.getElementById("themeToggle");
+if (localStorage.getItem("ceo_theme") === "light") document.body.classList.add("light");
+themeToggle.addEventListener("click", () => {
+  document.body.classList.toggle("light");
+  localStorage.setItem("ceo_theme", document.body.classList.contains("light") ? "light" : "dark");
+  renderAll();
+});
+
+/* ================= 公司管理（照发票助手：下拉 + 新增/修改/删除 modal，数据按公司隔离） ================= */
+let companies = [];
+let currentCompanyId = parseInt(localStorage.getItem("ceo-company-id") || "0", 10) || 1;
+
+function companyIdQuery() {
+  return "company_id=" + encodeURIComponent(currentCompanyId);
+}
+
+async function loadCompanies() {
+  const data = await api("/api/companies");
+  companies = data.companies || [];
+  if (!companies.some(c => c.id === currentCompanyId)) {
+    currentCompanyId = companies.length ? companies[0].id : 1;
+    localStorage.setItem("ceo-company-id", String(currentCompanyId));
+  }
+  // 填充所有页面的公司下拉（照发票助手：每页 toolbar 各一个）
+  document.querySelectorAll(".company-select").forEach(sel => {
+    sel.innerHTML = companies.map(c =>
+      `<option value="${c.id}" ${c.id === currentCompanyId ? "selected" : ""}></option>`).join("");
+    sel.querySelectorAll("option").forEach((opt, i) => { opt.textContent = companies[i].name; });
+    sel.value = String(currentCompanyId);
+  });
+  // v1.0.3：本公司信息未配置（默认公司/缺税号）时，导入页显示引导条
+  const hint = document.getElementById("companySetupHint");
+  if (hint) hint.style.display = companyReady() ? "none" : "block";
+}
+
+function onCompanyChanged() {
+  // 切公司后刷新所有跟随公司上下文的数据
+  loadDashboard();
+  loadImportStatus();
+  loadFixedExpenses();
+  const hint = document.getElementById("companySetupHint");
+  if (hint) hint.style.display = companyReady() ? "none" : "block";
+  bankLedgerState.page = 1;
+  invLedgerState.page = 1;
+  if (document.getElementById("tab-bank-ledger").classList.contains("active")) loadBankLedger();
+  if (document.getElementById("tab-invoice-ledger").classList.contains("active")) loadInvoiceLedger();
+  document.getElementById("briefContent").textContent = "尚未生成。";
+}
+document.getElementById("companySetupBtn")?.addEventListener("click", () => {
+  openCompanyModal(companies.find(c => c.id === currentCompanyId) || null);
+});
+document.querySelectorAll(".company-select").forEach(sel =>
+  sel.addEventListener("change", e => {
+    currentCompanyId = parseInt(e.target.value, 10);
+    localStorage.setItem("ceo-company-id", String(currentCompanyId));
+    document.querySelectorAll(".company-select").forEach(s => { s.value = e.target.value; });
+    onCompanyChanged();
+  }));
+
+function openCompanyModal(company) {
+  document.getElementById("companyModalTitle").textContent = company ? "修改公司" : "新增公司";
+  document.getElementById("companyIdInput").value = company ? company.id : "";
+  document.getElementById("companyNameInput").value = company ? company.name : "";
+  document.getElementById("companyTaxInput").value = company ? (company.tax_no || "") : "";
+  document.getElementById("companyNoteInput").value = company ? (company.note || "") : "";
+  document.getElementById("deleteCompanyBtn").style.visibility = company ? "visible" : "hidden";
+  document.getElementById("companyModal").classList.add("open");
+}
+function companyReady() {
+  const c = companies.find(x => x.id === currentCompanyId);
+  return !!c && (c.name || "").trim() && (c.name || "").trim() !== "默认公司" && !!(c.tax_no || "").trim();
+}
+function ensureCompanyReady(actionLabel) {
+  /* v1.0.3：导入前必须先建公司（全称+税号），未就绪直接引导填写 */
+  if (companyReady()) return true;
+  alert("先完善本公司信息再" + (actionLabel || "导入") + "：\n需要「公司全称 + 税号」，用于把本公司和客户/供应商区分开。");
+  const company = companies.find(x => x.id === currentCompanyId);
+  openCompanyModal(company || null);
+  return false;
+}
+document.getElementById("addCompanyBtn").addEventListener("click", () => openCompanyModal(null));
+document.getElementById("editCompanyBtn").addEventListener("click", () => {
+  const company = companies.find(c => c.id === currentCompanyId);
+  if (company) openCompanyModal(company);
+});
+document.getElementById("cancelCompanyBtn").addEventListener("click", () =>
+  document.getElementById("companyModal").classList.remove("open"));
+document.getElementById("saveCompanyBtn").addEventListener("click", async () => {
+  const name = document.getElementById("companyNameInput").value.trim();
+  const tax_no = document.getElementById("companyTaxInput").value.trim().toUpperCase();
+  const note = document.getElementById("companyNoteInput").value.trim();
+  if (!name) { alert("请填写公司全称"); return; }
+  if (!tax_no) { alert("请填写税号（统一社会信用代码）——导入前必须配置，用于区分本公司与客户/供应商"); return; }
+  const payload = { name, tax_no, note };
+  const idVal = document.getElementById("companyIdInput").value;
+  if (idVal) payload.id = idVal;
+  try {
+    const data = await api("/api/companies", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload),
+    });
+    localStorage.setItem("ceo-company-id", String(data.company.id));
+    currentCompanyId = data.company.id;
+    document.getElementById("companyModal").classList.remove("open");
+    await loadCompanies();
+    loadDashboard();
+    loadImportStatus();
+    loadFixedExpenses();
+  } catch (e) { alert("保存失败：" + e.message); }
+});
+document.getElementById("deleteCompanyBtn").addEventListener("click", async () => {
+  const idVal = document.getElementById("companyIdInput").value;
+  const name = document.getElementById("companyNameInput").value.trim();
+  if (!idVal) return;
+  if (!confirm(`确定删除「${name}」吗？该公司的银行流水、发票、导入批次、固定支出与周报都会一并删除。`)) return;
+  try {
+    await api("/api/companies/" + encodeURIComponent(idVal), { method: "DELETE" });
+    document.getElementById("companyModal").classList.remove("open");
+    localStorage.removeItem("ceo-company-id");
+    await loadCompanies();
+    loadDashboard();
+    loadImportStatus();
+    loadFixedExpenses();
+  } catch (e) { alert("删除失败：" + e.message); }
+});
+
+/* ================= 导航 ================= */
+document.querySelectorAll(".nav-btn").forEach(btn => {
+  btn.addEventListener("click", () => {
+    document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
+    document.querySelectorAll("section").forEach(s => s.classList.remove("active"));
+    btn.classList.add("active");
+    document.getElementById("tab-" + btn.dataset.tab).classList.add("active");
+    document.body.dataset.tab = btn.dataset.tab;
+    if (btn.dataset.tab === "dashboard") renderAll();
+    if (btn.dataset.tab === "bank-ledger") loadBankLedger();
+    if (btn.dataset.tab === "invoice-ledger") loadInvoiceLedger();
+    if (btn.dataset.tab === "settings") loadSettings();
+    if (btn.dataset.tab === "import") { loadImportStatus(); loadBatches(); loadBankAccounts(); }
+  });
+});
+
+/* ================= 工具 ================= */
+const escHtml = v => String(v === null || v === undefined ? "" : v)
+  .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+  .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+/* v1.0.5 往来单位别名：主名 + 小字列出被合并的别名 */
+function aliasNameHtml(name, aliases) {
+  const list = (aliases || []).filter(Boolean);
+  const extra = list.length
+    ? `<span class="tiny" style="display:block;color:var(--muted);font-weight:400;margin-top:2px;">含别名：${escHtml(list.join("、"))}</span>`
+    : "";
+  return `${escHtml(name)}${extra}`;
+}
+const fmtMoney = v => (v === null || v === undefined) ? "—" :
+  Number(v).toLocaleString("zh-CN", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+/* 经营者视角主显单位：万元（辅以完整元数字提示） */
+const fmtWan = v => (v === null || v === undefined) ? "—" :
+  Math.abs(v) >= 1e8 ? (v / 1e8).toFixed(2) + " 亿"
+  : (v / 1e4).toLocaleString("zh-CN", { minimumFractionDigits: 1, maximumFractionDigits: 1 }) + " 万";
+const monthsLabel = v => (v === null || v === undefined) ? "6 个月以上" : v + " 个月";
+function chartTheme() {
+  const light = document.body.classList.contains("light");
+  return {
+    text: light ? "#15342e" : "#eef8f4",
+    muted: light ? "#5d746e" : "#94a9a3",
+    line: light ? "rgba(47,138,120,.18)" : "rgba(171,214,202,.16)",
+    brand: light ? "#2f8a78" : "#35c7a5",
+    brand2: light ? "#dfaa3f" : "#f0b84f",
+    danger: light ? "#c94635" : "#ff806c",
+    warning: light ? "#9d6a07" : "#f5bf5c",
+    success: light ? "#237b52" : "#62d39a",
+    splitLine: light ? "rgba(47,138,120,.14)" : "rgba(171,214,202,.12)",
+  };
+}
+async function api(path, options) {
+  let resp;
+  try {
+    resp = await fetch(path, options);
+  } catch (e) {
+    setConnBadge(true);
+    throw new Error("本地服务未运行（可能已被关闭）。请关闭本窗口，重新双击「首席执行官」启动应用后再试，数据不会丢。");
+  }
+  const data = await resp.json().catch(() => ({}));
+  if (!resp.ok || data.success === false) throw new Error(data.error || ("HTTP " + resp.status));
+  return data;
+}
+
+/* v1.0.3 服务状态内置徽标：失联时顶栏出现小徽章（悬停看指引），恢复后自动消失；不再弹大横幅 */
+function setConnBadge(down) {
+  const badge = document.getElementById("connBadge");
+  if (!badge) return;
+  badge.hidden = !down;
+}
+
+/* ================= 心跳（窗口关了服务照常活；周报定时任务照常跑） ================= */
+setInterval(() => fetch("/api/heartbeat", { method: "POST" })
+  .then(r => { if (r.ok) setConnBadge(false); })
+  .catch(() => setConnBadge(true)), 10000);
+
+/* ================= 看板渲染 ================= */
+let charts = {};
+function makeChart(id) {
+  if (charts[id]) { charts[id].dispose(); }
+  charts[id] = echarts.init(document.getElementById(id));
+  return charts[id];
+}
+window.addEventListener("resize", () => Object.values(charts).forEach(c => c.resize()));
+
+let dashboardData = null;
+async function loadDashboard() {
+  try {
+    const data = await api("/api/dashboard?" + companyIdQuery());
+    dashboardData = data.dashboard;
+  } catch (e) {
+    console.error(e);
+  }
+  renderAll();
+}
+
+function renderAll() {
+  const d = dashboardData;
+  const empty = !d || (!d.has_bank && !d.has_invoice);
+  document.getElementById("emptyHint").style.display = empty ? "block" : "none";
+  ["kpiRow", "runwayCard", "arCards", "trendCards", "actionCard", "apCards", "spendCards"]
+    .forEach(id => document.getElementById(id).style.display = empty ? "none" : "grid");
+  if (empty || !d) { document.getElementById("asOfBadge").textContent = "数据截至：未导入"; return; }
+  document.getElementById("asOfBadge").textContent =
+    "数据截至 " + (d.as_of || "—") + (d.last_imported_at ? "（导入于 " + d.last_imported_at.replace("T", " ") + "）" : "");
+  const t = chartTheme();
+  const runway = d.runway || {};
+  const ml = runway.months_left || {};
+
+  // 本周要办清单
+  const actBox = document.getElementById("actionList");
+  actBox.innerHTML = "";
+  const levelNames = { high: "急", mid: "尽快", low: "保持" };
+  (d.action_items || []).forEach(item => {
+    const div = document.createElement("div");
+    div.className = "action-item " + (item.level || "low");
+    const tag = document.createElement("span");
+    tag.className = "tag";
+    tag.textContent = levelNames[item.level] || "保持";
+    const span = document.createElement("span");
+    span.textContent = item.text;
+    div.appendChild(tag);
+    div.appendChild(span);
+    actBox.appendChild(div);
+  });
+
+  // KPI（万元主显）
+  document.getElementById("kpiCash").textContent = fmtWan(runway.start_cash);
+  document.getElementById("kpiCash").title = runway.start_cash !== undefined ? fmtMoney(runway.start_cash) + " 元" : "";
+  document.getElementById("kpiCashHint").textContent = runway.start_cash !== undefined ? "最近一笔流水余额" : "";
+  const neutralMl = ml.neutral, pessMl = ml.pessimistic;
+  document.getElementById("kpiMonths").textContent = monthsLabel(neutralMl);
+  document.getElementById("kpiMonths").style.color =
+    (pessMl !== null && pessMl !== undefined && pessMl < 2) ? "var(--danger)"
+    : (neutralMl !== null && neutralMl !== undefined && neutralMl < 4) ? "var(--warning)" : "var(--success)";
+  document.getElementById("kpiMonthsHint").textContent =
+    "中性 " + monthsLabel(neutralMl) + " · 最差 " + monthsLabel(pessMl) + "（按回款假设）";
+  document.getElementById("kpiAR").textContent = fmtWan(d.aging.total_receivable);
+  document.getElementById("kpiAR").title = fmtMoney(d.aging.total_receivable) + " 元";
+  document.getElementById("kpiARHint").textContent = d.aging.unmatched_count + " 张发票未收回 · 回款率 "
+    + (d.collection.rate_overall === null ? "—" : d.collection.rate_overall + "%");
+  const payable = d.payable || {};
+  document.getElementById("kpiAP").textContent = payable.has_data ? fmtWan(payable.total) : "—";
+  if (payable.has_data) document.getElementById("kpiAP").title = fmtMoney(payable.total) + " 元";
+  document.getElementById("kpiAPHint").textContent = payable.has_data
+    ? "取得发票 " + fmtWan(payable.total_received_inv) + " − 已付 " + fmtWan(payable.matched_total)
+    : "导入「取得」发票后显示";
+  const rf = d.recent_flow;
+  document.getElementById("kpiNet30").textContent = rf ? fmtWan(rf.net30) : "—";
+  if (rf) document.getElementById("kpiNet30").title = fmtMoney(rf.net30) + " 元";
+  document.getElementById("kpiNet30").style.color = rf ? (rf.net30 >= 0 ? "var(--success)" : "var(--danger)") : "";
+  document.getElementById("kpiNet30Hint").textContent = rf
+    ? "收进 " + fmtWan(rf.in30) + " · 付出 " + fmtWan(rf.out30) : "导入银行流水后显示";
+  document.getElementById("kpiFixed").textContent = fmtWan(runway.monthly_fixed) + " / " + fmtWan(runway.safety_line);
+  const fixedHint = document.querySelector("#kpiFixed").parentElement.querySelector(".hint");
+  if (fixedHint) {
+    fixedHint.textContent = runway.fixed_in_cashflow === false
+      ? "每月从跑道中扣除" : "已含在流水，不重复扣";
+  }
+
+  // 跑道预警
+  const alertEl = document.getElementById("runwayAlert");
+  if (runway.alert && runway.alert.month) {
+    alertEl.textContent = "⚠ " + runway.alert.text;
+    alertEl.style.color = "var(--danger)";
+  } else {
+    alertEl.textContent = runway.alert ? "✔ " + runway.alert.text : "";
+    alertEl.style.color = "var(--success)";
+  }
+  document.getElementById("runwayNote").textContent = runway.months_left
+    ? `按回款假设折算：中性场景约可撑 ${monthsLabel(ml.neutral)}，最差情况 ${monthsLabel(ml.pessimistic)}。三条线是情景推演，不是事实承诺。`
+    : (runway.assumption_note || "");
+
+  // 三场景跑道曲线
+  const rc = makeChart("runwayChart");
+  const months = runway.scenarios ? runway.scenarios.optimistic.curve.map(p => p.month) : [];
+  const series = [];
+  const colors = { optimistic: t.success, neutral: t.brand, pessimistic: t.danger };
+  const labels = { optimistic: "乐观", neutral: "中性", pessimistic: "悲观" };
+  if (runway.scenarios) {
+    for (const key of ["optimistic", "neutral", "pessimistic"]) {
+      series.push({
+        name: labels[key], type: "line", smooth: true, symbolSize: 6,
+        data: runway.scenarios[key].curve.map(p => p.cash),
+        lineStyle: { width: 2.5, color: colors[key] }, itemStyle: { color: colors[key] },
+        areaStyle: key === "neutral" ? { opacity: .07, color: colors[key] } : undefined,
+        markLine: key === "neutral" ? {
+          silent: true, symbol: "none",
+          data: [{ yAxis: runway.safety_line, label: { formatter: "安全线 " + fmtMoney(runway.safety_line), position: "insideStartTop" } }],
+          lineStyle: { color: t.warning, type: "dashed", width: 1.5 },
+        } : undefined,
+      });
+    }
+  }
+  rc.setOption({
+    backgroundColor: "transparent",
+    textStyle: { color: t.text },
+    tooltip: { trigger: "axis", valueFormatter: v => fmtMoney(v) + " 元" },
+    legend: { top: 0, textStyle: { color: t.muted } },
+    grid: { left: 90, right: 24, top: 36, bottom: 34 },
+    xAxis: { type: "category", data: months, axisLabel: { color: t.muted }, axisLine: { lineStyle: { color: t.line } } },
+    yAxis: { type: "value", axisLabel: { color: t.muted, formatter: v => (v / 10000).toFixed(0) + "万" }, splitLine: { lineStyle: { color: t.splitLine } } },
+    series,
+  });
+
+  // 应收 TOP（含建议动作）
+  const tbody = document.querySelector("#arTopTable tbody");
+  tbody.innerHTML = "";
+  (d.ar_top || []).forEach(c => {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${c.rank}</td><td></td><td class="money">${fmtMoney(c.amount)}</td>
+      <td class="money" style="color:${c.max_days > 90 ? "var(--danger)" : c.max_days > 60 ? "var(--warning)" : "inherit"};font-weight:700;">${c.max_days} 天</td>
+      <td class="money">${fmtMoney(c.overdue_90)}</td><td></td>`;
+    tr.children[1].innerHTML = aliasNameHtml(c.name, c.alias_names);
+    const sug = tr.children[5];
+    sug.textContent = c.suggest || "正常跟进";
+    if (c.max_days > 60) { sug.style.color = "var(--danger)"; sug.style.fontWeight = "700"; }
+    else if (c.max_days > 30) { sug.style.color = "var(--warning)"; sug.style.fontWeight = "700"; }
+    tbody.appendChild(tr);
+  });
+  if (!(d.ar_top || []).length) tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--muted);">没有未收回的应收</td></tr>';
+
+  // 账龄图
+  const buckets = d.aging.buckets || [];
+  const ac = makeChart("agingChart");
+  ac.setOption({
+    backgroundColor: "transparent",
+    textStyle: { color: t.text },
+    tooltip: { trigger: "axis", valueFormatter: v => fmtMoney(v) + " 元" },
+    grid: { left: 90, right: 20, top: 30, bottom: 30 },
+    xAxis: { type: "category", data: buckets.map(b => b.bucket + "天"), axisLabel: { color: t.muted }, axisLine: { lineStyle: { color: t.line } } },
+    yAxis: { type: "value", axisLabel: { color: t.muted, formatter: v => (v / 10000).toFixed(0) + "万" }, splitLine: { lineStyle: { color: t.splitLine } } },
+    series: [{
+      type: "bar", barWidth: "45%",
+      data: buckets.map(b => ({
+        value: b.amount,
+        itemStyle: { color: b.bucket === "90+" ? t.danger : (b.bucket === "61-90" ? t.warning : t.brand), borderRadius: [5, 5, 0, 0] },
+      })),
+      label: { show: true, position: "top", color: t.muted, formatter: p => fmtMoney(p.value) },
+    }],
+  });
+  document.getElementById("agingSummary").textContent =
+    d.aging.total_receivable > 0
+      ? `还有 ${d.aging.unmatched_count} 张发票没收回来；累计开具 ${fmtMoney(d.aging.total_issued)} 元，已收回 ${fmtMoney(d.aging.matched_total)} 元。`
+      : `累计开具 ${fmtMoney(d.aging.total_issued)} 元，已全部收回（按轻匹配口径）。`;
+
+  // 回款趋势
+  const cm = d.collection.monthly || [];
+  const cc = makeChart("collectionChart");
+  if (!cm.length) {
+    cc.clear();
+  } else {
+    cc.setOption({
+      backgroundColor: "transparent",
+      textStyle: { color: t.text },
+      tooltip: {
+        trigger: "axis",
+        axisPointer: { type: "shadow" },
+        formatter: (ps) => {
+          const m = cm[ps[0].dataIndex] || {};
+          const rate = (m.rate === null || m.rate === undefined) ? "—" : m.rate + "%";
+          return `${m.month}<br/>开具 ${fmtMoney(m.issued)} 元<br/>已收 ${fmtMoney(m.received)} 元<br/>回款率 <b>${rate}</b>`;
+        },
+      },
+      legend: { top: 0, textStyle: { color: t.muted } },
+      grid: { left: 90, right: 60, top: 36, bottom: 30 },
+      xAxis: { type: "category", data: cm.map(m => m.month), axisLabel: { color: t.muted }, axisLine: { lineStyle: { color: t.line } } },
+      yAxis: [
+        { type: "value", axisLabel: { color: t.muted, formatter: v => (v / 10000).toFixed(0) + "万" }, splitLine: { lineStyle: { color: t.splitLine } } },
+        { type: "value", min: 0, max: 100, axisLabel: { color: t.muted, formatter: "{value}%" }, splitLine: { show: false } },
+      ],
+      series: [
+        {
+          name: "已收", type: "bar", stack: "inv", barWidth: "46%",
+          itemStyle: { color: t.brand, borderRadius: [0, 0, 3, 3] },
+          data: cm.map(m => m.received || 0),
+        },
+        {
+          name: "未收", type: "bar", stack: "inv",
+          itemStyle: { color: "rgba(255,128,108,.42)", borderRadius: [3, 3, 0, 0] },
+          data: cm.map(m => Math.max(0, (m.issued || 0) - (m.received || 0))),
+        },
+        {
+          name: "回款率", type: "line", yAxisIndex: 1, smooth: true,
+          symbol: "circle", symbolSize: 7,
+          itemStyle: { color: t.brand2 }, lineStyle: { width: 2.5 },
+          connectNulls: false,
+          data: cm.map(m => m.rate),
+        },
+      ],
+    });
+  }
+
+  // 收支趋势
+  const ct = d.cash_trend || [];
+  const tc = makeChart("cashTrendChart");
+  tc.setOption({
+    backgroundColor: "transparent",
+    textStyle: { color: t.text },
+    tooltip: { trigger: "axis", valueFormatter: v => fmtMoney(v) + " 元" },
+    legend: { top: 0, textStyle: { color: t.muted } },
+    grid: { left: 90, right: 20, top: 36, bottom: 30 },
+    xAxis: { type: "category", data: ct.map(m => m.month), axisLabel: { color: t.muted }, axisLine: { lineStyle: { color: t.line } } },
+    yAxis: { type: "value", axisLabel: { color: t.muted, formatter: v => (v / 10000).toFixed(0) + "万" }, splitLine: { lineStyle: { color: t.splitLine } } },
+    series: [
+      { name: "收入", type: "bar", stack: "f", barWidth: "36%", itemStyle: { color: t.brand, borderRadius: [4, 4, 0, 0] }, data: ct.map(m => m.in) },
+      { name: "支出", type: "bar", stack: "f", barWidth: "36%", itemStyle: { color: t.danger, borderRadius: [0, 0, 4, 4] }, data: ct.map(m => -m.out) },
+      { name: "净额", type: "line", smooth: true, itemStyle: { color: t.brand2 }, lineStyle: { width: 2.5 }, data: ct.map(m => m.net) },
+    ],
+  });
+
+  // ---- 应付 TOP（我欠谁最多）----
+  const apCard = document.getElementById("apCards");
+  if (payable.has_data) {
+    apCard.style.display = "grid";
+    const atb = document.querySelector("#apTopTable tbody");
+    atb.innerHTML = "";
+    (payable.suppliers || []).forEach((s, i) => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${i + 1}</td><td></td><td class="money">${fmtMoney(s.amount)}</td>
+        <td class="money">${s.count}</td>
+        <td class="money" style="color:${s.days_max > 45 ? "var(--warning)" : "inherit"};">${s.days_max} 天</td>`;
+      tr.children[1].innerHTML = aliasNameHtml(s.name, s.alias_names);
+      atb.appendChild(tr);
+    });
+    if (!(payable.suppliers || []).length)
+      atb.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--muted);">取得发票都已付清</td></tr>';
+    document.getElementById("apSummary").textContent =
+      payable.total > 0
+        ? `取得发票 ${fmtMoney(payable.total_received_inv)} 元，已支付 ${fmtMoney(payable.matched_total)} 元，估计还有 ${fmtMoney(payable.total)} 元要付（${payable.unpaid_count} 张未付）。`
+        : "取得发票均已支付，没有应付压力。";
+  } else {
+    apCard.style.display = "none";
+  }
+
+  // ---- 钱花哪去了（支出结构，近 6 个月）----
+  const sb = d.spend_breakdown;
+  const spendCard = document.getElementById("spendCards");
+  if (sb && sb.total > 0) {
+    spendCard.style.display = "grid";
+    const palette = [t.brand, t.brand2, t.danger, t.warning, t.success, t.muted];
+    const sc = makeChart("spendChart");
+    sc.setOption({
+      backgroundColor: "transparent",
+      textStyle: { color: t.text },
+      tooltip: { trigger: "item", valueFormatter: v => fmtMoney(v) + " 元" },
+      legend: { orient: "vertical", right: 4, top: "middle", textStyle: { color: t.muted, fontSize: 12 } },
+      series: [{
+        type: "pie", radius: ["42%", "68%"], center: ["38%", "50%"],
+        data: sb.categories.map((c, i) => ({ name: c.name, value: c.amount, itemStyle: { color: palette[i % palette.length] } })),
+        label: { show: false },
+      }],
+    });
+    const topCat = sb.categories[0];
+    document.getElementById("spendSummary").textContent =
+      `近 6 个月共支出 ${fmtWan(sb.total)} 元；最大头是「${topCat.name}」占 ${topCat.share}%。分类按摘要关键词归堆，仅供参考。`;
+    const stc = makeChart("spendTargetChart");
+    const targets = (sb.top_targets || []).slice(0, 8).reverse();
+    stc.setOption({
+      backgroundColor: "transparent",
+      textStyle: { color: t.text },
+      tooltip: { trigger: "axis", valueFormatter: v => fmtMoney(v) + " 元" },
+      grid: { left: 10, right: 60, top: 10, bottom: 24, containLabel: true },
+      xAxis: { type: "value", axisLabel: { color: t.muted, formatter: v => (v / 1e4).toFixed(0) + "万" }, splitLine: { lineStyle: { color: t.splitLine } } },
+      yAxis: { type: "category", data: targets.map(x => x.name), axisLabel: { color: t.muted, width: 110, overflow: "truncate" }, axisLine: { lineStyle: { color: t.line } } },
+      series: [{ type: "bar", barWidth: "55%", itemStyle: { color: t.brand2, borderRadius: [0, 4, 4, 0] }, data: targets.map(x => x.amount) }],
+    });
+    // 大额支出表
+    const bs = d.big_spends || { items: [], threshold: 0, total_out_30d: 0 };
+    document.getElementById("bigSpendNote").textContent =
+      `近 30 天共支出 ${fmtWan(bs.total_out_30d)} 元；单笔 ≥ ${fmtWan(bs.threshold)} 元列在这里，看看有没有不该花的。`;
+    const btb = document.querySelector("#bigSpendTable tbody");
+    btb.innerHTML = "";
+    (bs.items || []).forEach(b => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td>${b.date}</td><td></td><td class="money" style="color:var(--danger);font-weight:700;">${fmtMoney(b.amount)}</td><td></td>`;
+      tr.children[1].textContent = b.counterparty;
+      tr.children[3].textContent = b.summary;
+      btb.appendChild(tr);
+    });
+    if (!(bs.items || []).length)
+      btb.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--muted);">近 30 天没有大额支出</td></tr>';
+  } else {
+    spendCard.style.display = "none";
+    apCard.style.display = payable.has_data ? "grid" : "none";
+  }
+
+  // 项目盈利（条件卡）
+  const projectCard = document.getElementById("projectCard");
+  if (d.has_project_field && d.projects) {
+    projectCard.style.display = "grid";
+    const ptb = document.querySelector("#projectTable tbody");
+    ptb.innerHTML = "";
+    d.projects.forEach(p => {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `<td></td><td class="money">${fmtMoney(p.income)}</td><td class="money">${fmtMoney(p.cost)}</td>
+        <td class="money" style="color:${p.gross >= 0 ? "var(--success)" : "var(--danger)"};font-weight:800;">${fmtMoney(p.gross)}</td>`;
+      tr.children[0].textContent = p.project;
+      ptb.appendChild(tr);
+    });
+  } else {
+    projectCard.style.display = "none";
+  }
+
+  // 警告条
+  const warnBox = document.getElementById("dashWarnings");
+  warnBox.innerHTML = "";
+  (d.warnings || []).forEach(w => {
+    const div = document.createElement("div");
+    div.className = "notice warning";
+    div.textContent = w;
+    warnBox.appendChild(div);
+  });
+}
+document.getElementById("refreshDash").addEventListener("click", loadDashboard);
+
+/* ================= 数据导入（v1.0.2 两段式：选文件 → 点「导入」才上传，参考发票助手） ================= */
+function bindFilePicker(pickerId, inputId, nameId, btnId, onImport) {
+  const picker = document.getElementById(pickerId);
+  const input = document.getElementById(inputId);
+  const nameEl = document.getElementById(nameId);
+  const btn = document.getElementById(btnId);
+  let currentFile = null;
+  const openPicker = () => { input.value = ""; input.click(); };
+  picker.addEventListener("click", e => { if (!e.target.closest(".file-browse")) openPicker(); });
+  picker.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") openPicker(); });
+  input.addEventListener("change", () => {
+    currentFile = input.files.length ? input.files[0] : null;
+    nameEl.textContent = currentFile ? currentFile.name : "未选择文件";
+    btn.disabled = !currentFile;
+    btn.textContent = "导入";
+  });
+  btn.addEventListener("click", async () => {
+    if (!currentFile) return;
+    btn.disabled = true;
+    btn.textContent = "导入中…";
+    try {
+      await onImport(currentFile);
+      currentFile = null;
+      input.value = "";
+      nameEl.textContent = "未选择文件";
+      btn.textContent = "导入";
+    } catch (e) {
+      btn.disabled = false;
+      btn.textContent = "重试导入";
+    }
+  });
+}
+
+async function uploadFile(file, kind) {
+  const kindLabel = kind === "bank" ? "银行流水" : kind === "issue" ? "开具发票" : "取得发票";
+  if (!ensureCompanyReady("导入" + kindLabel)) return Promise.reject(new Error("请先完善本公司信息"));
+  const url = kind === "bank" ? "/api/import/bank" : "/api/import/invoice";
+  const form = new FormData();
+  form.append("file", file);
+  form.append("company_id", currentCompanyId);
+  if (kind !== "bank") form.append("kind", kind);
+  const box = document.getElementById("importResult");
+  box.innerHTML = '<div class="notice warning">正在解析 ' + kindLabel + '：' + file.name + " …</div>";
+  try {
+    const data = await api(url, { method: "POST", body: form });
+    const s = data.summary;
+    const dupLine = (s.duplicated ? `，重复跳过 ${s.duplicated} 笔` : "") +
+      (s.updated ? `，更新 ${s.updated} 行` : "") +
+      (s.suspicious ? `，⚠ 疑似重复 ${s.suspicious} 笔（到「银行流水」页核对）` : "");
+    let text;
+    if (kind === "bank") {
+      text = `<b>${kindLabel}导入完成</b>：原始 ${s.raw_rows} 行，新增 ${s.inserted} 笔${dupLine}` +
+        (s.accounts && s.accounts.length ? "（账户：" + s.accounts.map(a => a.account_name || a.account_no).join("、") + "）" : "");
+    } else {
+      text = `<b>${kindLabel}导入完成</b>：原始 ${s.raw_rows} 行，新增 ${s.inserted} 行${dupLine}` +
+        (s.has_project_field ? "；检测到项目字段 ✔（将显示项目盈利卡）" : "");
+    }
+    const warns = (s.warnings || []).map(w => '<div class="notice warning" style="margin-top:8px;">⚠ ' + w + "</div>").join("");
+    box.innerHTML = '<div class="notice">' + text + "</div>" + warns;
+    loadBatches();
+    loadDashboard();
+    loadFixedExpenses();
+    loadImportStatus();
+    loadBankAccounts();
+  } catch (e) {
+    box.innerHTML = '<div class="notice danger"><b>' + kindLabel + '导入失败</b>：' + e.message +
+      '<div class="tiny" style="margin-top:6px;">排查建议：① 确认文件是网银/税务平台原样导出的明细（不是汇总表或截图转的表格）；' +
+      '② 银行流水需含「日期、金额、对方户名」等列；③ 文件被 Excel 打开占用时先关闭再导。</div></div>';
+    throw e;
+  }
+}
+bindFilePicker("bankFilePicker", "bankImportFile", "bankFileName", "bankImportBtn",
+  file => uploadFile(file, "bank"));
+bindFilePicker("invFilePicker", "invImportFile", "invFileName", "invImportBtn",
+  file => uploadFile(file, "issue"));
+bindFilePicker("recvFilePicker", "recvImportFile", "recvFileName", "recvImportBtn",
+  file => uploadFile(file, "receive"));
+
+async function loadImportStatus() {
+  try {
+    const data = await api("/api/import/status?" + companyIdQuery());
+    document.getElementById("dataSourceInfo").innerHTML =
+      `银行流水：累计 ${data.bank.txn_count} 笔` +
+      (data.bank.suspicious ? `，疑似重复 ${data.bank.suspicious} 笔` : "") +
+      (data.bank.last_txn_date ? `，最新流水 ${data.bank.last_txn_date}` : "") + "<br>" +
+      (data.bank.accounts || []).map(a =>
+        `　· ${a.account_name || a.account_no}：${a.txn_count} 笔（${a.first_date || "—"} ~ ${a.last_date || "—"}）`
+      ).join("<br>") +
+      `<br>发票：开具 ${data.invoice.issue.count} 行 · 取得 ${data.invoice.receive.count} 行` +
+      (data.invoice.last_imported_at ? `（最新导入 ${data.invoice.last_imported_at.replace("T", " ")}）` : "");
+  } catch (e) { /* ignore */ }
+}
+async function clearSnapshot(kind) {
+  const label = kind === "bank" ? "银行流水" : "发票明细";
+  if (!confirm(`⚠ 此操作将永久删除全部已导入的${label}（累积账目，清空不可恢复）！\n确定要清空吗？`)) return;
+  await api("/api/import/clear", {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind, company_id: currentCompanyId }),
+  });
+  loadImportStatus(); loadDashboard(); loadBatches();
+}
+document.getElementById("clearBank2").addEventListener("click", () => clearSnapshot("bank"));
+document.getElementById("clearInvoice2").addEventListener("click", () => clearSnapshot("invoice"));
+
+/* ================= 台账（两独立页：银行流水日记账 + 发票台账，复刻发票助手交互） ================= */
+const bankLedgerState = { page: 1, pages: 1, total: 0 };
+const invLedgerState = { page: 1, pages: 1, total: 0 };
+
+/* ---- popover 通用（fixed 定位照发票助手 positionPopover） ---- */
+function positionPopover(button, popover) {
+  const rect = button.getBoundingClientRect();
+  const gap = 8;
+  const width = popover.offsetWidth || 380;
+  let left = rect.left;
+  let top = rect.bottom + gap;
+  if (left + width > window.innerWidth - 12) left = window.innerWidth - width - 12;
+  if (top + popover.offsetHeight > window.innerHeight - 12) top = Math.max(12, rect.top - popover.offsetHeight - gap);
+  popover.style.left = `${Math.max(12, left)}px`;
+  popover.style.top = `${Math.max(12, top)}px`;
+}
+function bindDateFilter(btnId, popoverId, fromId, toId, onChange) {
+  const btn = document.getElementById(btnId);
+  const pop = document.getElementById(popoverId);
+  const fromEl = document.getElementById(fromId);
+  const toEl = document.getElementById(toId);
+  const updateLabel = () => {
+    let label = "选择日期范围";
+    if (fromEl.value && toEl.value) label = `${fromEl.value} 至 ${toEl.value}`;
+    else if (fromEl.value) label = `${fromEl.value} 起`;
+    else if (toEl.value) label = `至 ${toEl.value}`;
+    btn.title = label;
+    btn.classList.toggle("has-date", Boolean(fromEl.value || toEl.value));
+  };
+  btn.addEventListener("click", e => {
+    e.stopPropagation();
+    const willOpen = !pop.classList.contains("open");
+    closeAllPopovers(pop);
+    if (willOpen) { positionPopover(btn, pop); pop.classList.add("open"); }
+  });
+  document.getElementById(btnId + "Apply")?.addEventListener("click", () => {
+    pop.classList.remove("open"); updateLabel(); onChange();
+  });
+  document.getElementById(btnId + "Clear")?.addEventListener("click", () => {
+    fromEl.value = ""; toEl.value = ""; updateLabel();
+  });
+  [fromEl, toEl].forEach(el => el.addEventListener("keydown", e => {
+    if (e.key === "Enter") document.getElementById(btnId + "Apply").click();
+  }));
+  updateLabel();
+}
+function bindAmountFilter(btnId, popoverId, applyId, clearId, inputIds, onChange) {
+  const btn = document.getElementById(btnId);
+  const pop = document.getElementById(popoverId);
+  const inputs = inputIds.map(id => document.getElementById(id));
+  const updateLabel = () => {
+    const n = inputs.filter(i => i.value !== "").length;
+    btn.textContent = n ? `金额 ${n}` : "金额";
+    btn.classList.toggle("has-filter", n > 0);
+  };
+  btn.addEventListener("click", e => {
+    e.stopPropagation();
+    const willOpen = !pop.classList.contains("open");
+    closeAllPopovers(pop);
+    if (willOpen) { positionPopover(btn, pop); pop.classList.add("open"); }
+  });
+  document.getElementById(applyId).addEventListener("click", () => {
+    pop.classList.remove("open"); updateLabel(); onChange();
+  });
+  document.getElementById(clearId).addEventListener("click", () => {
+    inputs.forEach(i => i.value = ""); updateLabel();
+  });
+  inputs.forEach(el => el.addEventListener("keydown", e => {
+    if (e.key === "Enter") document.getElementById(applyId).click();
+  }));
+  updateLabel();
+}
+const ALL_POPOVERS = () => Array.from(document.querySelectorAll(".filter-popover, .date-popover"));
+function closeAllPopovers(except = null) {
+  ALL_POPOVERS().forEach(p => { if (p !== except) p.classList.remove("open"); });
+}
+document.addEventListener("click", e => {
+  if (!e.target.closest(".filter-popover-wrap, .date-filter-wrap")) closeAllPopovers();
+});
+
+/* ---- CSV 导出（前端生成，带 BOM 防 Excel 乱码） ---- */
+function exportCsv(filename, headers, rows) {
+  const escape = v => {
+    const s = v === null || v === undefined ? "" : String(v);
+    return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+  };
+  const csv = "\ufeff" + [headers.map(escape).join(",")]
+    .concat(rows.map(r => r.map(escape).join(","))).join("\r\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+/* ---- 银行流水 ---- */
+function bankLedgerParams() {
+  const q = new URLSearchParams({ page: bankLedgerState.page, company_id: currentCompanyId });
+  const account = document.getElementById("bankLedgerAccount").value;
+  const direction = document.getElementById("bankLedgerDirection").value;
+  const dateFrom = document.getElementById("bankDateFrom").value.trim();
+  const dateTo = document.getElementById("bankDateTo").value.trim();
+  const amountMin = document.getElementById("bankAmountMin").value;
+  const amountMax = document.getElementById("bankAmountMax").value;
+  const keyword = document.getElementById("bankLedgerKw").value.trim();
+  const dupOnly = document.getElementById("bankLedgerDup").checked;
+  if (account) q.set("account", account);
+  if (direction) q.set("direction", direction);
+  if (dateFrom) q.set("date_from", dateFrom);
+  if (dateTo) q.set("date_to", dateTo);
+  if (amountMin !== "") q.set("amount_min", amountMin);
+  if (amountMax !== "") q.set("amount_max", amountMax);
+  if (keyword) q.set("keyword", keyword);
+  if (dupOnly) q.set("dup_only", "1");
+  return q;
+}
+
+async function loadBankLedger() {
+  const data = await api("/api/ledger/bank?" + bankLedgerParams());
+  const acctSel = document.getElementById("bankLedgerAccount");
+  if (acctSel.options.length <= 1 && (data.accounts || []).length) {
+    data.accounts.forEach(a => {
+      const opt = document.createElement("option");
+      opt.value = a; opt.textContent = a;
+      acctSel.appendChild(opt);
+    });
+  }
+  bankLedgerState.total = data.total;
+  bankLedgerState.pages = Math.max(1, Math.ceil(data.total / data.page_size));
+  const sum = data.summary || {};
+  document.getElementById("bankLedgerTotal").textContent =
+    `共 ${data.total} 笔` +
+    (sum.in ? ` · 收 ${sum.in.count} 笔 ${fmtMoney(sum.in.amount)}` : "") +
+    (sum.out ? ` · 付 ${sum.out.count} 笔 ${fmtMoney(sum.out.amount)}` : "") +
+    (bankLedgerState.pages > 1 ? `（第 ${bankLedgerState.page}/${bankLedgerState.pages} 页）` : "");
+  const tbody = document.getElementById("bankLedgerRows");
+  tbody.innerHTML = (data.rows || []).map(r => {
+    const isIn = r.direction === "in";
+    const bal = r.balance_after === null ? "—" : fmtMoney(r.balance_after);
+    return `<tr>
+      <td>${r.txn_date}${r.txn_time ? " " + r.txn_time : ""}</td>
+      <td style="color:${isIn ? "var(--success)" : "var(--danger)"};font-weight:800;">${isIn ? "收" : "付"}</td>
+      <td></td>
+      <td class="money" style="color:${isIn ? "var(--success)" : "var(--danger)"};">${isIn ? "+" : "-"}${fmtMoney(r.amount)}</td>
+      <td class="money">${bal}</td>
+      <td></td>
+      <td class="tiny">${r.account_no}</td>
+      <td class="tiny"></td>
+      <td>${r.dup_flag ? '<span class="risk-flag">' + r.dup_flag + "</span>" : ""}</td>
+      <td class="tiny">${(r.imported_at || "").replace("T", " ")}</td>
+    </tr>`;
+  }).join("") || emptyRow(10);
+  // 文本列走 textContent 防注入
+  tbody.querySelectorAll("tr").forEach((tr, i) => {
+    const row = data.rows[i];
+    if (!row) return;
+    if (tr.children[2]) tr.children[2].textContent = row.counterparty || "";
+    if (tr.children[5]) tr.children[5].textContent = row.summary || "";
+    if (tr.children[7]) tr.children[7].textContent = row.txn_ref || "";
+  });
+  document.getElementById("bankLedgerPage").textContent = bankLedgerState.page + " / " + bankLedgerState.pages;
+}
+
+/* ---- 发票台账（复刻发票助手列：日期/方向/发票号码/客户供应商/金额/税额/价税合计） ---- */
+function invLedgerParams() {
+  const q = new URLSearchParams({ page: invLedgerState.page, company_id: currentCompanyId });
+  const kind = document.getElementById("invLedgerKind").value;
+  const dateFrom = document.getElementById("invDateFrom").value.trim();
+  const dateTo = document.getElementById("invDateTo").value.trim();
+  const amountMin = document.getElementById("invAmountMin").value;
+  const amountMax = document.getElementById("invAmountMax").value;
+  const taxMin = document.getElementById("invTaxMin").value;
+  const taxMax = document.getElementById("invTaxMax").value;
+  const invNo = document.getElementById("invLedgerNo").value.trim();
+  const unit = document.getElementById("invLedgerUnit").value.trim();
+  const project = document.getElementById("invLedgerProject").value.trim();
+  if (kind) q.set("kind", kind);
+  if (dateFrom) q.set("date_from", dateFrom);
+  if (dateTo) q.set("date_to", dateTo);
+  if (amountMin !== "") q.set("amount_min", amountMin);
+  if (amountMax !== "") q.set("amount_max", amountMax);
+  if (taxMin !== "") q.set("tax_min", taxMin);
+  if (taxMax !== "") q.set("tax_max", taxMax);
+  if (invNo) q.set("inv_no", invNo);
+  if (unit) q.set("unit", unit);
+  if (project) q.set("keyword", project);
+  return q;
+}
+
+async function loadInvoiceLedger() {
+  const data = await api("/api/ledger/invoice?" + invLedgerParams());
+  invLedgerState.total = data.total;
+  invLedgerState.pages = Math.max(1, Math.ceil(data.total / data.page_size));
+  const sum = data.summary || {};
+  document.getElementById("invLedgerTotal").textContent =
+    `共 ${data.total} 行` +
+    (sum.issue ? ` · 开具 ${sum.issue.count} 行 ${fmtMoney(sum.issue.amount)} 元` : "") +
+    (sum.receive ? ` · 取得 ${sum.receive.count} 行 ${fmtMoney(sum.receive.amount)} 元` : "") +
+    (invLedgerState.pages > 1 ? `（第 ${invLedgerState.page}/${invLedgerState.pages} 页）` : "");
+  const tbody = document.getElementById("invLedgerRows");
+  tbody.innerHTML = (data.rows || []).map(r => {
+    const isIssue = r.kind === "issue";
+    const net = (r.tax === null || r.tax === undefined) ? null : r.amount - r.tax;
+    return `<tr>
+      <td>${r.inv_date}</td>
+      <td style="font-weight:700;">${isIssue ? "开具" : "取得"}</td>
+      <td></td>
+      <td></td>
+      <td class="money">${net === null ? "—" : fmtMoney(net)}</td>
+      <td class="money">${r.tax === null || r.tax === undefined ? "—" : fmtMoney(r.tax)}</td>
+      <td class="money" style="font-weight:700;">${fmtMoney(r.amount)}</td>
+      <td></td>
+      <td class="tiny">${(r.imported_at || "").replace("T", " ")}</td>
+    </tr>`;
+  }).join("") || emptyRow(9);
+  tbody.querySelectorAll("tr").forEach((tr, i) => {
+    const row = data.rows[i];
+    if (!row) return;
+    if (tr.children[2]) tr.children[2].textContent = row.inv_no || "";
+    if (tr.children[3]) tr.children[3].textContent = row.counterparty || "";
+    if (tr.children[7]) tr.children[7].textContent = row.project || "";
+  });
+  document.getElementById("invLedgerPage").textContent = invLedgerState.page + " / " + invLedgerState.pages;
+}
+
+/* ---- 银行账户（v1.0.8：账号未识别时可用工作表名占位，之后在这里改名） ---- */
+async function loadBankAccounts() {
+  const tb = document.querySelector("#accountTable tbody");
+  if (!tb) return;
+  let data;
+  try {
+    data = await api("/api/bank/accounts?" + companyIdQuery());
+  } catch (e) {
+    tb.innerHTML = emptyRow(5);
+    return;
+  }
+  const list = data.accounts || [];
+  tb.innerHTML = list.map(a => `<tr>
+      <td class="acc-name">${escHtml(a.account_name || "（未命名）")}${a.unrecognized
+        ? ' <span class="badge" style="background:rgba(255,200,60,.16);color:var(--warning);">账号未识别</span>' : ""}</td>
+      <td class="tiny">${escHtml(a.account_no)}</td>
+      <td class="money">${a.count}</td>
+      <td class="tiny">${escHtml(a.first_date)} ~ ${escHtml(a.last_date)}</td>
+      <td><button class="edit-btn" data-no="${escHtml(a.account_no)}" data-name="${escHtml(a.account_name || "")}">改名</button></td>
+    </tr>`).join("") || emptyRow(5);
+  tb.querySelectorAll(".edit-btn").forEach(btn =>
+    btn.addEventListener("click", () => startAccountRename(btn)));
+}
+
+function startAccountRename(btn) {
+  const tr = btn.closest("tr");
+  const cell = tr.querySelector(".acc-name");
+  const cellHtml = cell.innerHTML;
+  const accountNo = btn.dataset.no;
+  cell.innerHTML = `<input class="acc-input" value="${escHtml(btn.dataset.name || "")}"
+    style="min-height:32px;padding:4px 8px;width:100%;">`;
+  const input = cell.querySelector(".acc-input");
+  input.focus();
+  input.select();
+  btn.textContent = "保存";
+  const cancel = () => { cell.innerHTML = cellHtml; btn.textContent = "改名"; };
+  btn.onclick = async () => {
+    const name = input.value.trim();
+    if (!name) { alert("账户名不能为空"); return; }
+    try {
+      await api("/api/bank/accounts", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ account_no: accountNo, account_name: name,
+                               company_id: currentCompanyId }),
+      });
+      await loadBankAccounts();
+      if (typeof loadBankLedger === "function") loadBankLedger();
+    } catch (e) { alert("改名失败：" + e.message); }
+  };
+  input.addEventListener("keydown", e => {
+    if (e.key === "Enter") btn.click();
+    if (e.key === "Escape") cancel();
+  });
+}
+
+/* ---- 批次历史（数据导入页"最近导入"） ---- */
+async function loadBatches() {
+  const data = await api("/api/import/batches?" + companyIdQuery());
+  const tbody = document.getElementById("batchRows");
+  tbody.innerHTML = (data.batches || []).map(b => `<tr>
+      <td class="tiny">${(b.imported_at || "").replace("T", " ")}</td>
+      <td>${b.kind === "bank" ? "银行流水" : "发票"}</td>
+      <td></td>
+      <td class="money">${b.raw_rows}</td>
+      <td class="money" style="color:var(--success);font-weight:700;">${b.inserted}</td>
+      <td class="money">${b.duplicated}</td>
+      <td class="money">${b.updated}</td>
+      <td class="money" style="color:${b.suspicious ? "var(--danger)" : "inherit"};font-weight:${b.suspicious ? 800 : 400};">${b.suspicious}</td>
+      <td class="tiny">${(b.warnings || []).join("；") || ""}</td>
+    </tr>`).join("") || emptyRow(9);
+  tbody.querySelectorAll("tr").forEach((tr, i) => {
+    const row = data.batches[i];
+    if (row && tr.children[2]) tr.children[2].textContent = row.file_name || "";
+  });
+}
+
+/* ---- 台账事件绑定 ---- */
+function bindLedgerControls() {
+  // 银行台账
+  bindDateFilter("bankDateBtn", "bankDatePopover", "bankDateFrom", "bankDateTo", () => { bankLedgerState.page = 1; loadBankLedger(); });
+  bindAmountFilter("bankAmountBtn", "bankAmountPopover", "bankAmountApply", "bankAmountClear",
+    ["bankAmountMin", "bankAmountMax"], () => { bankLedgerState.page = 1; loadBankLedger(); });
+  ["bankLedgerAccount", "bankLedgerDirection"].forEach(id =>
+    document.getElementById(id).addEventListener("change", () => { bankLedgerState.page = 1; loadBankLedger(); }));
+  document.getElementById("bankLedgerDup").addEventListener("change", () => { bankLedgerState.page = 1; loadBankLedger(); });
+  document.getElementById("bankLedgerKw").addEventListener("keydown", e => {
+    if (e.key === "Enter") { bankLedgerState.page = 1; loadBankLedger(); }
+  });
+  document.getElementById("bankLedgerQuery").addEventListener("click", () => { bankLedgerState.page = 1; loadBankLedger(); });
+  document.getElementById("bankLedgerReset").addEventListener("click", () => {
+    ["bankLedgerAccount", "bankLedgerDirection", "bankLedgerKw"].forEach(id => document.getElementById(id).value = "");
+    ["bankDateFrom", "bankDateTo", "bankAmountMin", "bankAmountMax"].forEach(id => document.getElementById(id).value = "");
+    document.getElementById("bankLedgerDup").checked = false;
+    document.getElementById("bankDateBtn").classList.remove("has-date");
+    document.getElementById("bankAmountBtn").classList.remove("has-filter");
+    bankLedgerState.page = 1; loadBankLedger();
+  });
+  document.getElementById("bankLedgerPrev").addEventListener("click", () => {
+    if (bankLedgerState.page > 1) { bankLedgerState.page--; loadBankLedger(); }
+  });
+  document.getElementById("bankLedgerNext").addEventListener("click", () => {
+    if (bankLedgerState.page < bankLedgerState.pages) { bankLedgerState.page++; loadBankLedger(); }
+  });
+  document.getElementById("bankLedgerExport").addEventListener("click", async () => {
+    const q = bankLedgerParams(); q.set("page", 1); q.set("page_size", 200); q.set("export", "1");
+    const data = await api("/api/ledger/bank?" + q);
+    exportCsv("银行流水.csv",
+      ["日期", "时间", "收/付", "对方单位", "金额", "交易后余额", "摘要", "账户", "流水号", "校验", "导入时间"],
+      (data.rows || []).map(r => [
+        r.txn_date, r.txn_time, r.direction === "in" ? "收" : "付", r.counterparty,
+        r.amount, r.balance_after, r.summary, r.account_no, r.txn_ref, r.dup_flag, r.imported_at]));
+  });
+  // 发票台账
+  bindDateFilter("invDateBtn", "invDatePopover", "invDateFrom", "invDateTo", () => { invLedgerState.page = 1; loadInvoiceLedger(); });
+  bindAmountFilter("invAmountBtn", "invAmountPopover", "invAmountApply", "invAmountClear",
+    ["invAmountMin", "invAmountMax", "invTaxMin", "invTaxMax"], () => { invLedgerState.page = 1; loadInvoiceLedger(); });
+  document.getElementById("invLedgerKind").addEventListener("change", () => { invLedgerState.page = 1; loadInvoiceLedger(); });
+  ["invLedgerNo", "invLedgerUnit", "invLedgerProject"].forEach(id =>
+    document.getElementById(id).addEventListener("keydown", e => {
+      if (e.key === "Enter") { invLedgerState.page = 1; loadInvoiceLedger(); }
+    }));
+  document.getElementById("invLedgerQuery").addEventListener("click", () => { invLedgerState.page = 1; loadInvoiceLedger(); });
+  document.getElementById("invLedgerReset").addEventListener("click", () => {
+    ["invLedgerKind", "invLedgerNo", "invLedgerUnit", "invLedgerProject"].forEach(id => document.getElementById(id).value = "");
+    ["invDateFrom", "invDateTo", "invAmountMin", "invAmountMax", "invTaxMin", "invTaxMax"].forEach(id => document.getElementById(id).value = "");
+    document.getElementById("invDateBtn").classList.remove("has-date");
+    document.getElementById("invAmountBtn").classList.remove("has-filter");
+    invLedgerState.page = 1; loadInvoiceLedger();
+  });
+  document.getElementById("invLedgerPrev").addEventListener("click", () => {
+    if (invLedgerState.page > 1) { invLedgerState.page--; loadInvoiceLedger(); }
+  });
+  document.getElementById("invLedgerNext").addEventListener("click", () => {
+    if (invLedgerState.page < invLedgerState.pages) { invLedgerState.page++; loadInvoiceLedger(); }
+  });
+  document.getElementById("invLedgerExport").addEventListener("click", async () => {
+    const q = invLedgerParams(); q.set("page", 1); q.set("page_size", 200); q.set("export", "1");
+    const data = await api("/api/ledger/invoice?" + q);
+    exportCsv("发票台账.csv",
+      ["开票日", "方向", "发票号码", "客户/供应商", "金额(不含税)", "税额", "价税合计", "项目", "导入时间"],
+      (data.rows || []).map(r => [
+        r.inv_date, r.kind === "issue" ? "开具" : "取得", r.inv_no, r.counterparty,
+        (r.tax === null || r.tax === undefined) ? "" : r.amount - r.tax, r.tax, r.amount, r.project, r.imported_at]));
+  });
+}
+bindLedgerControls();
+
+/* ================= 固定支出（v1.0.4：每月几号 / 支持修改 / 列表显示完整） ================= */
+const FE_FORMS = {
+  fe2: { name: "feName2", amount: "feAmount2", day: "feDay2", note: "feNote2", btn: "feAdd2", cancel: "feCancel2", editingId: null },
+};
+let ovEditingId = null;
+let fixedDataCache = { items: [], override_items: [] };
+
+function feRowHtml(x, group) {
+  return `<tr>
+    <td>${escHtml(x.name)}</td>
+    <td class="money">${fmtMoney(x.monthly_amount)}</td>
+    <td>${x.day_of_month ? "每月 " + x.day_of_month + " 日" : "—"}</td>
+    <td>${escHtml(x.note) || "—"}</td>
+    <td class="row-actions">
+      <button class="edit-btn" data-group="${group}" data-id="${x.id}">修改</button>
+      <button class="del-btn" data-group="${group}" data-id="${x.id}">删除</button>
+    </td></tr>`;
+}
+
+function resetFeForm(group) {
+  const f = FE_FORMS[group];
+  ["name", "amount", "day", "note"].forEach(k => { document.getElementById(f[k]).value = ""; });
+  f.editingId = null;
+  document.getElementById(f.btn).textContent = "添加";
+  document.getElementById(f.cancel).style.display = "none";
+}
+
+function resetOvForm() {
+  ["ovAmount", "ovDate", "ovNote"].forEach(id => { document.getElementById(id).value = ""; });
+  ovEditingId = null;
+  document.getElementById("ovAdd").textContent = "添加";
+  document.getElementById("ovCancel").style.display = "none";
+}
+
+async function loadFixedExpenses() {
+  const data = await api("/api/config/fixed-expenses?" + companyIdQuery());
+  fixedDataCache = {
+    items: data.items || [],
+    override_items: data.override_items || [],
+  };
+  document.querySelector("#feTable2 tbody").innerHTML =
+    fixedDataCache.items.map(x => feRowHtml(x, "fe2")).join("") || emptyRow(5);
+
+  document.querySelectorAll('#feTable2 .del-btn').forEach(b =>
+    b.addEventListener("click", async () => {
+      if (!confirm("确定删除这条每月固定支出吗？")) return;
+      await api("/api/config/fixed-expenses", {
+        method: "DELETE", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: +b.dataset.id, company_id: currentCompanyId }),
+      });
+      resetFeForm(b.dataset.group);
+      loadFixedExpenses(); loadDashboard();
+    }));
+  document.querySelectorAll('#feTable2 .edit-btn').forEach(b =>
+    b.addEventListener("click", () => {
+      const group = b.dataset.group;
+      const item = fixedDataCache.items.find(x => String(x.id) === String(b.dataset.id));
+      if (!item) return;
+      const f = FE_FORMS[group];
+      document.getElementById(f.name).value = item.name || "";
+      document.getElementById(f.amount).value = item.monthly_amount ?? "";
+      document.getElementById(f.day).value = item.day_of_month || "";
+      document.getElementById(f.note).value = item.note || "";
+      f.editingId = item.id;
+      document.getElementById(f.btn).textContent = "保存修改";
+      document.getElementById(f.cancel).style.display = "";
+      document.getElementById(f.name).focus();
+    }));
+
+  // 大额支出：金额 / 日期（到日）/ 备注
+  const ovs = fixedDataCache.override_items;
+  document.querySelector("#ovTable tbody").innerHTML = ovs.map(o => `<tr>
+    <td class="money">${fmtMoney(o.amount)}</td>
+    <td>${escHtml(o.date || o.month)}</td>
+    <td>${escHtml(o.note) || "—"}</td>
+    <td class="row-actions">
+      <button class="edit-btn" data-oid="${o.id}">修改</button>
+      <button class="del-btn" data-oid="${o.id}">删除</button>
+    </td></tr>`).join("") || emptyRow(4);
+
+  document.querySelectorAll("#ovTable .del-btn").forEach(b =>
+    b.addEventListener("click", async () => {
+      if (!confirm("确定删除这笔大额支出吗？")) return;
+      await api("/api/config/expense-overrides", {
+        method: "DELETE", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: +b.dataset.oid, company_id: currentCompanyId }),
+      });
+      resetOvForm();
+      loadFixedExpenses(); loadDashboard();
+    }));
+  document.querySelectorAll("#ovTable .edit-btn").forEach(b =>
+    b.addEventListener("click", () => {
+      const item = fixedDataCache.override_items.find(x => String(x.id) === String(b.dataset.oid));
+      if (!item) return;
+      document.getElementById("ovAmount").value = item.amount ?? "";
+      document.getElementById("ovDate").value = (item.date || item.month || "").slice(0, 10);
+      document.getElementById("ovNote").value = item.note || "";
+      ovEditingId = item.id;
+      document.getElementById("ovAdd").textContent = "保存修改";
+      document.getElementById("ovCancel").style.display = "";
+      document.getElementById("ovAmount").focus();
+    }));
+}
+function emptyRow(cols) { return `<tr><td colspan="${cols}" style="text-align:center;color:var(--muted);">暂无</td></tr>`; }
+
+async function submitFixedExpense(group) {
+  const f = FE_FORMS[group];
+  const name = document.getElementById(f.name).value.trim();
+  const amountRaw = document.getElementById(f.amount).value;
+  const dayRaw = document.getElementById(f.day).value;
+  const note = document.getElementById(f.note).value.trim();
+  if (!name) { alert("请填写名称（如：工资）"); return; }
+  if (amountRaw === "" || isNaN(+amountRaw)) { alert("请填写每月金额"); return; }
+  let day = 0;
+  if (dayRaw !== "") {
+    day = parseInt(dayRaw, 10);
+    if (!(day >= 1 && day <= 31)) { alert("「每月几号」请填 1~31 的整数（留空表示不指定）"); return; }
+  }
+  const body = {
+    name, monthly_amount: +amountRaw, day_of_month: day, note,
+    company_id: currentCompanyId,
+  };
+  if (f.editingId) body.id = f.editingId;
+  await api("/api/config/fixed-expenses", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  resetFeForm(group);
+  loadFixedExpenses(); loadDashboard();
+}
+
+document.getElementById("feAdd2").addEventListener("click", () => submitFixedExpense("fe2"));
+document.getElementById("feCancel2").addEventListener("click", () => resetFeForm("fe2"));
+document.getElementById("ovCancel").addEventListener("click", () => resetOvForm());
+document.getElementById("ovAdd").addEventListener("click", async () => {
+  const amountRaw = document.getElementById("ovAmount").value;
+  const date = document.getElementById("ovDate").value;
+  const note = document.getElementById("ovNote").value.trim();
+  if (amountRaw === "" || isNaN(+amountRaw)) { alert("请填写金额"); return; }
+  if (!date) { alert("请选择日期（可精确到某一天）"); return; }
+  const body = {
+    date, month: date.slice(0, 7), amount: +amountRaw, note,
+    company_id: currentCompanyId,
+  };
+  if (ovEditingId) body.id = ovEditingId;
+  await api("/api/config/expense-overrides", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  resetOvForm();
+  loadFixedExpenses(); loadDashboard();
+});
+
+/* ================= 往来单位关联（v1.0.5：发票名与流水名不一致但同一家） ================= */
+async function loadCounterpartyAliases() {
+  const data = await api("/api/config/counterparty-aliases?" + companyIdQuery());
+  document.getElementById("cpNameList").innerHTML =
+    (data.names || []).map(n => `<option value="${escHtml(n)}"></option>`).join("");
+  const body = document.querySelector("#cpTable tbody");
+  const rows = data.aliases || [];
+  body.innerHTML = rows.map(a => `<tr>
+      <td>${escHtml(a.alias)}</td>
+      <td>${escHtml(a.canonical)}</td>
+      <td><button class="del-btn" data-id="${a.id}">删除</button></td>
+    </tr>`).join("")
+    || `<tr><td colspan="3" style="text-align:center;color:var(--muted);">还没有关联</td></tr>`;
+  document.querySelectorAll("#cpTable .del-btn").forEach(b =>
+    b.addEventListener("click", async () => {
+      if (!confirm("解除这条关联？解除后两家会重新分开计算。")) return;
+      await api("/api/config/counterparty-aliases", {
+        method: "DELETE", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: +b.dataset.id, company_id: currentCompanyId }),
+      });
+      loadCounterpartyAliases(); loadDashboard();
+    }));
+}
+document.getElementById("cpAdd").addEventListener("click", async () => {
+  const alias = document.getElementById("cpAlias").value.trim();
+  const canonical = document.getElementById("cpCanonical").value.trim();
+  if (!alias || !canonical) { alert("两个名称都要填"); return; }
+  try {
+    await api("/api/config/counterparty-aliases", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ alias, canonical, company_id: currentCompanyId }),
+    });
+    document.getElementById("cpAlias").value = "";
+    document.getElementById("cpCanonical").value = "";
+    loadCounterpartyAliases(); loadDashboard();
+  } catch (e) { alert("关联失败：" + e.message); }
+});
+
+/* ================= 设置：回收率 / 安全线 / AI / 企微 ================= */
+let aiProviderMap = {};
+let aiModelList = [];
+const AI_MODELS_CACHE_KEY = "ceo_ai_models";
+
+function aiModelsCache() {
+  try { return JSON.parse(localStorage.getItem(AI_MODELS_CACHE_KEY) || "{}"); } catch (e) { return {}; }
+}
+function saveAiModelsCache(provider, models) {
+  try {
+    const cache = aiModelsCache();
+    cache[provider] = models;
+    localStorage.setItem(AI_MODELS_CACHE_KEY, JSON.stringify(cache));
+  } catch (e) { /* 隐私模式忽略 */ }
+}
+function toggleCustomModel() {
+  const custom = document.getElementById("aiModel").value === "__custom__";
+  document.getElementById("aiCustomModelRow").style.display = custom ? "" : "none";
+}
+function renderModelSelect(selected) {
+  const sel = document.getElementById("aiModel");
+  const list = aiModelList.slice();
+  sel.innerHTML = list.map(m => `<option value="${escHtml(m)}">${escHtml(m)}</option>`).join("")
+    + `<option value="__custom__">手动输入…</option>`;
+  if (selected && list.includes(selected)) sel.value = selected;
+  else if (list.length) sel.value = list[0];
+  else sel.value = "__custom__";
+  if (selected && !list.includes(selected)) {
+    document.getElementById("aiCustomModel").value = selected;
+  }
+  toggleCustomModel();
+}
+function currentModelValue() {
+  const sel = document.getElementById("aiModel");
+  if (sel.value === "__custom__") return document.getElementById("aiCustomModel").value.trim();
+  return sel.value || "";
+}
+function loadModelOptions(provider, preferred) {
+  const presetModels = ((aiProviderMap[provider] || {}).models || []).slice();
+  const cached = (aiModelsCache()[provider] || []);
+  const merged = [];
+  [...presetModels, ...cached].forEach(m => { if (m && !merged.includes(m)) merged.push(m); });
+  aiModelList = merged;
+  renderModelSelect(preferred || "");
+}
+function aiFormPayload() {
+  return {
+    provider: document.getElementById("aiProvider").value,
+    base_url: document.getElementById("aiBaseUrl").value,
+    model: currentModelValue(),
+    api_key: document.getElementById("aiKey").value,
+    anonymize: document.getElementById("aiAnonymize").checked,
+  };
+}
+function showAiTestResult(ok, text) {
+  const box = document.getElementById("aiTestResult");
+  box.style.display = "block";
+  box.style.borderColor = ok ? "rgba(53,199,165,.55)" : "rgba(255,128,108,.55)";
+  box.style.color = ok ? "var(--success, #35c7a5)" : "var(--danger)";
+  box.textContent = (ok ? "✔ " : "✖ ") + text;
+}
+const scenarioNames = { optimistic: "乐观", neutral: "中性", pessimistic: "悲观" };
+async function loadSettings() {
+  const eng = await api("/api/config/engine");
+  const tbody = document.querySelector("#rateTable tbody");
+  tbody.innerHTML = "";
+  for (const key of ["optimistic", "neutral", "pessimistic"]) {
+    const tr = document.createElement("tr");
+    tr.innerHTML = `<td>${scenarioNames[key]}</td>` + ["0-30", "31-60", "61-90", "90+"].map(b =>
+      `<td class="money"><input class="rate-input" data-scenario="${key}" data-bucket="${b}"
+        type="number" min="0" max="100" value="${Math.round(eng.recovery_rates[key][b] * 100)}"></td>`).join("");
+    tbody.appendChild(tr);
+  }
+  document.getElementById("safetyInput").value = eng.safety_months;
+  document.getElementById("safetySave").onclick = saveEngineConfig;
+  const fic = document.getElementById("fixedInCashflow");
+  fic.checked = eng.fixed_in_cashflow !== false;
+  fic.onchange = saveEngineConfig;
+  document.querySelectorAll(".rate-input").forEach(inp => inp.onchange = saveEngineConfig);
+
+  const ai = await api("/api/config/ai");
+  aiProviderMap = ai.providers || {};
+  const providerSel = document.getElementById("aiProvider");
+  const groupOrder = ["国内", "海外", "本地", "自定义", "其他"];
+  const grouped = {};
+  Object.entries(aiProviderMap).forEach(([k, v]) => {
+    const g = v.group || "其他";
+    (grouped[g] = grouped[g] || []).push([k, v]);
+  });
+  providerSel.innerHTML = groupOrder.filter(g => grouped[g]).map(g =>
+    `<optgroup label="${g}">` + grouped[g].map(([k, v]) =>
+      `<option value="${k}" ${ai.config.provider === k ? "selected" : ""}>${v.label}</option>`
+    ).join("") + `</optgroup>`).join("");
+  const applyProvider = (fillInputs) => {
+    const p = aiProviderMap[providerSel.value] || {};
+    if (fillInputs) {
+      document.getElementById("aiBaseUrl").value = p.base_url || "";
+      loadModelOptions(providerSel.value, p.default_model || "");
+    }
+  };
+  providerSel.onchange = () => applyProvider(true);
+  document.getElementById("aiModel").onchange = toggleCustomModel;
+  document.getElementById("aiBaseUrl").value = ai.config.base_url || "";
+  document.getElementById("aiKey").value = "";
+  document.getElementById("aiAnonymize").checked = !!ai.config.anonymize;
+  loadModelOptions(ai.config.provider, ai.config.model || "");
+  document.getElementById("aiStatus").textContent = ai.enabled ? "✔ 已启用" : "未配置（本地规则模式）";
+
+  const wecom = await api("/api/config/wecom");
+  try { await loadCounterpartyAliases(); } catch (e) { console.warn("往来单位关联加载失败", e); }
+  document.getElementById("wecomUrl").value = wecom.webhook_url || "";
+  document.getElementById("wecomStatus").textContent = wecom.configured ? "✔ 已配置" : "未配置";
+}
+async function saveEngineConfig() {
+  const rates = {};
+  document.querySelectorAll(".rate-input").forEach(inp => {
+    (rates[inp.dataset.scenario] = rates[inp.dataset.scenario] || {})[inp.dataset.bucket] = +inp.value / 100;
+  });
+  await api("/api/config/engine", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      recovery_rates: rates,
+      safety_months: +document.getElementById("safetyInput").value || 1,
+      fixed_in_cashflow: document.getElementById("fixedInCashflow").checked,
+    }),
+  });
+  loadDashboard();
+}
+document.getElementById("aiSave").addEventListener("click", async () => {
+  try {
+    const data = await api("/api/config/ai", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(aiFormPayload()),
+    });
+    document.getElementById("aiBaseUrl").value = data.config.base_url || "";
+    renderModelSelect(data.config.model || "");
+    document.getElementById("aiStatus").textContent = data.enabled ? "✔ 已启用" : "未启用（检查 Key / 地址 / 模型）";
+    if (data.config.base_url && /apihub\.agnes-ai\.com/.test(data.config.base_url)) {
+      showAiTestResult(true, "Base URL 已自动纠正为 apihub.agnes-ai.com/v1（旧地址会 404），建议点「测试连接」确认 Key。");
+    }
+    loadAiModeNote();
+  } catch (e) { alert("保存失败：" + e.message); }
+});
+document.getElementById("aiTest").addEventListener("click", async () => {
+  const btn = document.getElementById("aiTest");
+  const raw = btn.textContent;
+  btn.disabled = true; btn.textContent = "测试中…";
+  showAiTestResult(true, "正在请求厂商接口，请稍候…");
+  try {
+    const r = await api("/api/config/ai/test", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(aiFormPayload()),
+    });
+    showAiTestResult(!!r.ok, r.message || (r.ok ? "连接成功" : "连接失败"));
+    if (r.models && r.models.length) {
+      aiModelList = r.models.slice();
+      saveAiModelsCache(document.getElementById("aiProvider").value, aiModelList);
+      renderModelSelect(currentModelValue());
+    }
+  } catch (e) {
+    showAiTestResult(false, "测试请求失败：" + e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = raw;
+  }
+});
+document.getElementById("aiFetchModels").addEventListener("click", async () => {
+  const btn = document.getElementById("aiFetchModels");
+  const raw = btn.textContent;
+  btn.disabled = true; btn.textContent = "拉取中…";
+  try {
+    const r = await api("/api/config/ai/models", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(aiFormPayload()),
+    });
+    if (r.ok) {
+      aiModelList = (r.models || []).slice();
+      saveAiModelsCache(document.getElementById("aiProvider").value, aiModelList);
+      renderModelSelect(currentModelValue() || (aiModelList[0] || ""));
+      showAiTestResult(true, `已刷新 ${aiModelList.length} 个模型`);
+    } else {
+      showAiTestResult(false, r.message || "拉取失败");
+    }
+  } catch (e) {
+    showAiTestResult(false, "拉取失败：" + e.message);
+  } finally {
+    btn.disabled = false; btn.textContent = raw;
+  }
+});
+document.getElementById("wecomSave").addEventListener("click", async () => {
+  await api("/api/config/wecom", {
+    method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ webhook_url: document.getElementById("wecomUrl").value }),
+  });
+  document.getElementById("wecomStatus").textContent = "✔ 已保存";
+});
+
+/* ================= AI 对话 ================= */
+function addMsg(role, text, note) {
+  const box = document.getElementById("chatBox");
+  const div = document.createElement("div");
+  div.className = "msg " + (role === "user" ? "user" : "ai");
+  div.textContent = text;
+  if (note) {
+    const n = document.createElement("span");
+    n.className = "ai-note";
+    n.textContent = note;
+    div.appendChild(n);
+  }
+  box.appendChild(div);
+  box.scrollTop = box.scrollHeight;
+}
+async function sendChat(question) {
+  if (!question.trim()) return;
+  addMsg("user", question);
+  document.getElementById("chatInput").value = "";
+  try {
+    const data = await api("/api/ai/chat", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question, company_id: currentCompanyId }),
+    });
+    addMsg("ai", data.answer, data.mode === "cloud" ? "AI 生成，仅供参考；数字可追溯到本地引擎" : "本地规则模式");
+  } catch (e) {
+    addMsg("ai", "出错了：" + e.message);
+  }
+}
+document.getElementById("chatSend").addEventListener("click", () => sendChat(document.getElementById("chatInput").value));
+document.getElementById("chatInput").addEventListener("keydown", e => { if (e.key === "Enter") sendChat(e.target.value); });
+document.querySelectorAll(".quick button").forEach(b =>
+  b.addEventListener("click", () => sendChat(b.dataset.q)));
+
+async function loadAiModeNote() {
+  try {
+    const ai = await api("/api/config/ai");
+    const label = ((ai.providers || {})[ai.config.provider] || {}).label || ai.config.provider;
+    document.getElementById("aiModeNote").textContent = ai.enabled
+      ? "已接入云 LLM：" + label + " · " + ai.config.model + "。回答基于本地引擎聚合数字。"
+      : "本地规则模式：决策卡用模板话术；自由问答需要在「设置 → AI 接入」配置 API 后开启。";
+  } catch (e) { /* ignore */ }
+}
+
+/* ================= 周简报 ================= */
+async function genBriefing(force) {
+  const box = document.getElementById("briefContent");
+  box.textContent = "生成中…";
+  try {
+    const data = await api("/api/briefing/generate", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ force, company_id: currentCompanyId }),
+    });
+    box.textContent = data.content + (data.cached ? "\n（本周缓存，如需刷新请点「强制重新生成」）" : "");
+    if (data.note) box.textContent += "\n⚠ " + data.note;
+  } catch (e) {
+    box.textContent = "生成失败：" + e.message;
+  }
+}
+document.getElementById("genBrief").addEventListener("click", () => genBriefing(false));
+document.getElementById("genBriefFresh").addEventListener("click", () => genBriefing(true));
+document.getElementById("pushBrief").addEventListener("click", async () => {
+  const data = await api("/api/briefing/push", { method: "POST", headers: { "Content-Type": "application/json" }, body: "{}" });
+  alert(data.success ? "已推送到企业微信 ✔" : "推送失败：" + data.error);
+});
+
+/* ================= 情景问答 ================= */
+document.getElementById("scenarioBtn").addEventListener("click", async () => {
+  const client = document.getElementById("scenarioClient").value.trim();
+  const box = document.getElementById("scenarioResult");
+  if (!client) { alert("请输入客户名称"); return; }
+  box.style.display = "block";
+  box.textContent = "本地引擎重算中…";
+  try {
+    const data = await api("/api/ai/scenario", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ client, company_id: currentCompanyId }),
+    });
+    box.textContent = data.result.answer;
+  } catch (e) {
+    box.textContent = "失败：" + e.message;
+  }
+});
+
+/* ================= 启动 ================= */
+(async function init() {
+  try {
+    const h = await api("/api/health");
+    document.getElementById("version-pill").textContent = "v" + h.version;
+  } catch (e) { /* ignore */ }
+  try { await loadCompanies(); } catch (e) { /* ignore */ }
+  loadImportStatus();
+  loadFixedExpenses().catch(() => {});
+  loadAiModeNote();
+  loadDashboard();
+  loadSettings().catch(() => {});
+})();
+</script>
+</body>
+</html>
